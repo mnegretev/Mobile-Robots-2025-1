@@ -21,10 +21,11 @@ def callback_scan(msg):
     # TODO:
     # Do something to detect if there is an obstacle in front of the robot.
     # Set the 'obstacle_detected' variable with True or False, accordingly.
-    #
+    # 
     
     n = int ((msg.angle_max - msg.angle_min)/msg.angle_increment/2)
     obstacle_detected = msg.ranges [n] < 1.0
+    #Prueba Diego Salazar
     
     return
 
