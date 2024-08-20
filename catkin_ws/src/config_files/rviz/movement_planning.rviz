@@ -24,7 +24,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -306,7 +306,7 @@ Visualization Manager:
       Marker Topic: /navigation/segmented_lines_marker
       Name: LineSegments
       Namespaces:
-        {}
+        segmented_lines: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -420,6 +420,84 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        back_wheel_link:
+          Value: true
+        base_center:
+          Value: true
+        base_link:
+          Value: true
+        base_torso_support:
+          Value: true
+        camera_link:
+          Value: true
+        head_link1:
+          Value: true
+        head_link2:
+          Value: true
+        laser_link:
+          Value: true
+        laser_link_rear:
+          Value: true
+        left_arm_grip_center:
+          Value: true
+        left_arm_grip_left:
+          Value: true
+        left_arm_grip_right:
+          Value: true
+        left_arm_link1:
+          Value: true
+        left_arm_link2:
+          Value: true
+        left_arm_link3:
+          Value: true
+        left_arm_link4:
+          Value: true
+        left_arm_link5:
+          Value: true
+        left_arm_link6:
+          Value: true
+        left_arm_link7:
+          Value: true
+        left_wheel_link:
+          Value: true
+        map:
+          Value: true
+        neck_link:
+          Value: true
+        odom:
+          Value: true
+        realsense_link:
+          Value: true
+        right_arm_grip_center:
+          Value: true
+        right_arm_grip_left:
+          Value: true
+        right_arm_grip_right:
+          Value: true
+        right_arm_link1:
+          Value: true
+        right_arm_link2:
+          Value: true
+        right_arm_link3:
+          Value: true
+        right_arm_link4:
+          Value: true
+        right_arm_link5:
+          Value: true
+        right_arm_link6:
+          Value: true
+        right_arm_link7:
+          Value: true
+        right_wheel_link:
+          Value: true
+        shoulders_left_link:
+          Value: true
+        shoulders_right_link:
+          Value: true
+        spine_link:
+          Value: true
+        torso_link:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -427,7 +505,58 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        {}
+        map:
+          odom:
+            base_link:
+              base_center:
+                back_wheel_link:
+                  {}
+                base_torso_support:
+                  {}
+                laser_link:
+                  {}
+                laser_link_rear:
+                  {}
+                left_wheel_link:
+                  {}
+                right_wheel_link:
+                  {}
+              torso_link:
+                spine_link:
+                  head_link1:
+                    head_link2:
+                      neck_link:
+                        camera_link:
+                          realsense_link:
+                            {}
+                  shoulders_left_link:
+                    left_arm_link1:
+                      left_arm_link2:
+                        left_arm_link3:
+                          left_arm_link4:
+                            left_arm_link5:
+                              left_arm_link6:
+                                left_arm_link7:
+                                  left_arm_grip_center:
+                                    {}
+                                  left_arm_grip_left:
+                                    {}
+                                  left_arm_grip_right:
+                                    {}
+                  shoulders_right_link:
+                    right_arm_link1:
+                      right_arm_link2:
+                        right_arm_link3:
+                          right_arm_link4:
+                            right_arm_link5:
+                              right_arm_link6:
+                                right_arm_link7:
+                                  right_arm_grip_center:
+                                    {}
+                                  right_arm_grip_left:
+                                    {}
+                                  right_arm_grip_right:
+                                    {}
       Update Interval: 0
       Value: true
   Enabled: true
@@ -458,7 +587,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 20.45079803466797
+      Distance: 14.286303520202637
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -466,17 +595,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 5.819936752319336
-        Y: 5.533354759216309
-        Z: -1.359655737876892
+        X: 5.591487884521484
+        Y: 3.917825698852539
+        Z: -0.9657880663871765
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.424795150756836
+      Pitch: 0.9447962045669556
       Target Frame: <Fixed Frame>
-      Yaw: 0.0004076957702636719
+      Yaw: 4.525407791137695
     Saved: ~
 Window Geometry:
   Displays:
@@ -497,4 +626,4 @@ Window Geometry:
     collapsed: true
   Width: 1528
   X: 104
-  Y: 62
+  Y: 27
