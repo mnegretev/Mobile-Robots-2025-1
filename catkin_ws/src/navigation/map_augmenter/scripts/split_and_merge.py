@@ -51,6 +51,7 @@ def split(points, threshold, min_points):
     lines1 = split(points[0:idx], threshold, min_points)
     lines2 = split(points[idx+1:len(points)], threshold, min_points)
     lines  = lines1 + lines2
+    return lines
 
 def merge(lines, rho_tol, theta_tol):
     new_lines = []
@@ -65,7 +66,7 @@ def merge(lines, rho_tol, theta_tol):
         return lines
     for i in range(1, len(lines)):
         rho1, theta1, xm1, ym1, length1 = lines[i]
-        rho2, tehta2, xm2, ym2, lenght2 = lines[i-1]
+        rho2, theta2, xm2, ym2, length2 = lines[i-1]
         e_rho   = abs((rho1 - rho2)/min(rho1,rho2))
         e_theta = abs(theta1 - theta2)
         if e_rho < rho_tol and e_theta < theta_tol:
