@@ -42,7 +42,15 @@ def split(points, threshold, min_points):
     # Implement the 'split' part of the split and merge algorithm for finding lines.
     # Implement the recursive method of the algorithm. 
     #
-    
+    if len(points) < min_points:
+        return lines
+    rho, theta, xm, ym, length = adjust_line(points)
+    idx, dist = find_farthest_point(points, rho, theta)
+    if dist < threshold:
+        return [[rho, theta, xm, ym, length]]
+    lines1 = split(points[0:idx], threshold, min_points)
+    lines2 = split(points[idx+1:len(points)], threshold, min_points)
+    lines = lines1 + lines2
     return lines
 
 def merge(lines, rho_tol, theta_tol):
