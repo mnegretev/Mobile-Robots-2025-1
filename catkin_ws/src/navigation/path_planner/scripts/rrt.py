@@ -91,8 +91,10 @@ def rrt(start_x, start_y, goal_x, goal_y, grid_map, epsilon, max_attempts):
         nearest_node = get_nearest_node(tree , x, y)
         new_node     = get_new_node(nearest_node , x, y, epsilon)
         if not check_collision(nearest_node , new_node, grid_map):
-            new_node.children.append(goal_node)
-            goal_node.parent = new_node
+            nearest_node.children.append(new_node)
+            if not check_collision(new_node, goal_node, grid_map):
+                new_node.children.append(goal_node)
+                goal_node.parent = new_node
         max_attempts -= 1
 
     path = []
