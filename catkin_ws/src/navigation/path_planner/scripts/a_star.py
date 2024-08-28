@@ -38,7 +38,31 @@ def a_star(start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
     # Map is considered to be a 2D array and start and goal positions
     # are given as row-col pairs
     #
-            
+    heapq.heappush(open_list, (0, [start.r, start.c]))
+    in_open_list[start.r, start.c] = True
+    g_values[start.r, start.c] = 0
+    [row, col] = [start.r, start.c]
+
+    while len(open_list) > 0 and [row, col] != [goal.r, goal.c]:
+        [row, col] = heapq.heappop(open_list)[1]
+        in_closed_list[row, col] = True
+        for [r, c, cost] in adjacents:
+            r, c = r + row, c + col
+            if grid_map[r, c] > 40 or grid_map[r, c] < 0 or in_closed_list[r, c]:
+                continue
+            g = g_values[row, col] + cost + cost_map[r][c]
+            h = math.sqrt((goal.r - r) ** 2 + (goal.c - c) ** 2)
+            f = g + h
+            if g < g_values[r, c]:
+                g_values[r, c] = g
+                f_values[r, c] = f
+                parent_nodes[r, c] = [row, col]
+            if not in_open_list[r, c]:
+                in_open_list[r, c] = True
+                heapq.heappush(open_list, (f, [r, c]))
+
+
+    
     path = []
     while parent_nodes[goal_r, goal_c][0] != -1:
         path.insert(0, [goal_r, goal_c])
