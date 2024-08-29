@@ -145,7 +145,7 @@ def callback_rrt(req):
     [gx, gy] = [req.goal .pose.position.x, req.goal .pose.position.y]
     epsilon = rospy.get_param("~epsilon", 1.0)
     max_attempts = rospy.get_param("~max_n", 100)
-    print("Coordenadas "+str([gx,gy])+" with e="+str(epsilon)+" and "+str(max_attempts)+" attempts.")
+    print("Planning path by RRT from "" with e="+str(epsilon)+" and "+str(max_attempts)+" attempts.")
     start_time = rospy.Time.now()
     tree,path = rrt(sx, sy, gx, gy, grid_map, epsilon, max_attempts)
     end_time = rospy.Time.now()
