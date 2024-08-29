@@ -18,7 +18,7 @@ from nav_msgs.msg import Path
 from nav_msgs.srv import *
 from collections import deque
 
-NAME = "FULL NAME"
+NAME = "ALEXIS PIZANO BRAVO"
     
 def a_star(start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
     in_open_list   = numpy.full(grid_map.shape, False)
