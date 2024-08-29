@@ -15,7 +15,7 @@ from nav_msgs.srv import GetMap
 from nav_msgs.srv import GetMapResponse
 from nav_msgs.srv import GetMapRequest
 
-NAME = "Diego Salazar Barrera"
+NAME = "FULL_NAME"
 
 def get_cost_map(static_map, cost_radius):
     cost_map = numpy.copy(static_map)
@@ -42,12 +42,11 @@ def get_cost_map(static_map, cost_radius):
     
     for i in range (height):
         for j in range (width):
-            if static_map [i, j] > 50:
-                for k1 in range (-cost_radius, cost_radius +1):
-                    for k2 in range (-cost_radius, cost_radius +1):
+            if static_map [i,j]>50:
+                for k1 in range(-cost_radius, cost_radius + 1):
+                    for k2 in range (-cost_radius, cost_radius+1):
                         cost = cost_radius - max(abs(k1), abs(k2)) + 1
-                        cost_map [i+k1, j+k2] = max(cost, cost_map[i + k1, j + k2])
-    
+                        cost_map [i+k1, j+k2] = max(cost, cost_map[i+k1, j+k2])
     
     return cost_map
 
