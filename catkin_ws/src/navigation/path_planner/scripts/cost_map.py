@@ -46,6 +46,7 @@ def get_cost_map(static_map, cost_radius):
                     for k2 in range(-cost_radius, cost_radius+1):
                         cost = cost_radius - max(abs(k1),abs(k2)) +1
                         cost_map[i+k1, j+k2] = max(cost, cost_map[i+k1,j+k2])
+    
     return cost_map
 
 def callback_cost_map(req):
