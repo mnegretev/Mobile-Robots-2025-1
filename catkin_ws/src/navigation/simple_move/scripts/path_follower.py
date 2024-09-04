@@ -61,9 +61,9 @@ def follow_path(path, alpha, beta, v_max, w_max):
     #     If dist to goal point is less than 0.3 (you can change this constant)
     #         Change goal point to the next point in the path
     #
-    data_path = open("camino_deseado.csv", "w")
-    data_real = open("camino_real.csv", "w")
-    data_vel = open("velocidades.csv", "w")
+    data_path = open("camino_deseado3.csv", "w")
+    data_real = open("camino_real3.csv", "w")
+    data_vel = open("velocidades3.csv", "w")
 
     data_path.write("x,y\n") #Encabezados
     data_real.write("x,y\n")
