@@ -75,7 +75,7 @@ def follow_path(path, alpha, beta, v_max, w_max):
         v,w = calculate_control(Pr[0],Pr[1],robot_a,Pg[0],Pg[1],alpha,beta,v_max,w_max)
         publish_twist(v,w)
         Pr,robot_a = get_robot_pose()
-        if numpy.linalg.corm(Pg-Pr) < 0.3:
+        if numpy.linalg.norm(Pg-Pr) < 0.3:
             idx = min(idx+1,len(path)-1)
             Pg=path[idx]
         print(Pr)
