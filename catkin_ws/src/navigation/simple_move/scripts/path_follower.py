@@ -19,7 +19,7 @@ from nav_msgs.srv import GetPlan, GetPlanRequest
 from navig_msgs.srv import ProcessPath, ProcessPathRequest
 from geometry_msgs.msg import Twist, PoseStamped, Pose, Point
 
-NAME = "FULL NAME"
+NAME = "Torres Anguiano Azael Arturo"
 
 pub_goal_reached = None
 pub_cmd_vel = None
@@ -33,7 +33,7 @@ def calculate_control(robot_x, robot_y, robot_a, goal_x, goal_y, alpha, beta, v_
     # Implement the control law given by:
     #
     error_a = math.atan2(goal_y - robot_y , goal_x - robot_y) - robot_a
-    error_a = ((error_a + math.pi)%(2*math.pi)) - math.pi
+    error_a = (error_a + math.pi)%(2*math.pi) - math.pi
     v = v_max*math.exp(-error_a*error_a/alpha)
     w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
     #
@@ -64,7 +64,7 @@ def follow_path(path, alpha, beta, v_max, w_max):
     #
     idx = 0
     Pg = path[idx]
-    data_path = open("path.usv","w")
+    data_path = open("path.csv","w")
     for p in path:
         data_path.write(str(p[0]) +","+ str(p[1]) + "\n" )
     data_path.close();
