@@ -2,6 +2,8 @@
 #
 # MOBILE ROBOTS - FI-UNAM, 2025-1
 # PATH FOLLOWING WITH PLOTTING
+# MOBILE ROBOTS - FI-UNAM, 2025-1
+# PATH FOLLOWING
 #
 # Instructions:
 # Write the code necessary to move the robot along a given path.
