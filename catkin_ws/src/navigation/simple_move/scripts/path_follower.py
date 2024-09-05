@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # PATH FOLLOWING
 #
 # Instructions:
@@ -13,13 +13,14 @@ import rospy
 import tf
 import math
 import numpy
+import csv
 from std_msgs.msg import Bool
 from nav_msgs.msg import Path
 from nav_msgs.srv import GetPlan, GetPlanRequest
 from navig_msgs.srv import ProcessPath, ProcessPathRequest
 from geometry_msgs.msg import Twist, PoseStamped, Pose, Point
 
-NAME = "FULL NAME"
+NAME = "Frías Hernández Camille Emille Román"
 
 pub_goal_reached = None
 pub_cmd_vel = None
@@ -32,8 +33,10 @@ def calculate_control(robot_x, robot_y, robot_a, goal_x, goal_y, alpha, beta, v_
     # TODO:
     # Implement the control law given by:
     #
-    # v = v_max*math.exp(-error_a*error_a/alpha)
-    # w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
+    error_a = math.atan2(goal_y- robot_y, goal_x - robot_x) -robot_a 
+    error_a = (error_a+math.pi)%(2*math.pi) - math.pi 
+    v = v_max*math.exp(-error_a*error_a/alpha)
+    w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
     #
     # where error_a is the angle error
     # and v_max, w_max, alpha and beta, are tunning constants.
@@ -60,7 +63,45 @@ def follow_path(path, alpha, beta, v_max, w_max):
     #     If dist to goal point is less than 0.3 (you can change this constant)
     #         Change goal point to the next point in the path
     #
-            
+    
+    # Abre los archivos CSV en modo escritura
+    file_path = open('path.csv', mode='w', newline='')
+    arch_vw = open('VW.csv', mode='w', newline='')
+    arch_follower = open('follower.csv', mode='w', newline='')
+
+    writer_path = csv.writer(file_path)
+    writer_vw = csv.writer(arch_vw)
+    writer_follower = csv.writer(arch_follower)
+
+    writer_path.writerow(['x', 'y'])
+    writer_vw.writerow(['V', 'W'])
+    writer_follower.writerow(['X', 'Y'])
+
+    for point in path:
+        writer_path.writerow(point)
+        
+    file_path.close()
+
+    id_x = 0
+    Pg = path[id_x]
+    Pr, robot_a = get_robot_pose()
+
+    while numpy.linalg.norm(path[-1] - Pr) > 0.1 and not rospy.is_shutdown():
+        v, w = calculate_control(Pr[0], Pr[1], robot_a, Pg[0], Pg[1], alpha, beta, v_max, w_max)
+		
+        writer_vw.writerow([v, w])
+		
+        writer_follower.writerow([Pr[0], Pr[1]])
+		
+        publish_twist(v, w)
+        Pr, robot_a = get_robot_pose()
+		
+        if numpy.linalg.norm(Pg - Pr) < 0.3:
+            id_x = min(id_x + 1, len(path) - 1)
+            Pg = path[id_x]
+
+    arch_vw.close()
+    arch_follower.close()
     return
         
 
