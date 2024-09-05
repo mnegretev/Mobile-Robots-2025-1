@@ -64,7 +64,7 @@ def follow_path(path, alpha, beta, v_max, w_max):
     #
     idx = 0
     Pg = path[idx]
-    Pr, robot_a = get_robot-pose()
+    Pr, robot_a = get_robot_pose()
     while numpy.linalg.norm(path[-1] - Pr) > 0.1 and not rospy . is_shutdown():
     	v, w = calculate_control(Pr[0], Pr[1], robot_a, Pg[0], Pg[1], alpha, beta, v_max, w_max)
     	publish_twist(v,w)
