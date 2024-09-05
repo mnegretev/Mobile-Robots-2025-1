@@ -40,7 +40,21 @@ def calculate_control(robot_x, robot_y, robot_a, goal_x, goal_y, alpha, beta, v_
     # Remember to keep error angle in the interval (-pi,pi]
     # Return the tuple [v,w]
     #
-        
+    
+    # Calculate the angle to the goal
+    goal_angle = math.atan2(goal_y - robot_y, goal_x - robot_x)
+    
+    # Error in angle
+    error_a = goal_angle - robot_a
+    
+    # Normalize the angle error to be within (-pi, pi]
+    error_a = (error_a + math.pi) % (2 * math.pi) - math.pi
+    
+    # linear velocity v , angular velocity w
+    v = v_max*math.exp(-error_a*error_a/alpha)  
+    w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1) 
+    
+    
     return [v,w]
 
 def follow_path(path, alpha, beta, v_max, w_max):
@@ -60,7 +74,29 @@ def follow_path(path, alpha, beta, v_max, w_max):
     #     If dist to goal point is less than 0.3 (you can change this constant)
     #         Change goal point to the next point in the path
     #
-            
+    idx = 0
+    Pg = path[idx] 
+     
+    #extra
+    #data_path=open("path.csv" , "w")
+    #for p in path:
+    #    data_path.write(str(p[0])+","+str(p[1])+"\n")
+    #data_path.close();
+    #data_vw=open("data_vw.csv","w")
+   
+    Pr, robot_a = get_robot_pose() 
+    #data_file=open("data.csv","w")
+    while numpy.linalg.norm (path[-1]-Pr)>0.1 and not rospy.is_shutdown():
+        v,w=calculate_control(Pr[0],Pr[1], robot_a,Pg[0],Pg[1], alpha,beta,v_max,w_max)
+        Publish_twist(v,w)
+        Pr,robot_a=get_robot_pose()
+        if numpy.linalg.norm(Pg-Pr)<0.3:
+            idx=min(idx+1,len(path)-1)
+            Pg=path[idx]
+        #print(Pr)
+        #data_file.write(str(Pr[0])+","+str (Pr[1])+"\n")  
+        #data_vw.write(str(v)+","+str(w)+"\n")
+    #data_file.close()   
     return
         
 
