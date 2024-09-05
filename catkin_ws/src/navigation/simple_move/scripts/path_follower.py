@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # PATH FOLLOWING
 #
 # Instructions:
@@ -19,60 +19,91 @@ from nav_msgs.srv import GetPlan, GetPlanRequest
 from navig_msgs.srv import ProcessPath, ProcessPathRequest
 from geometry_msgs.msg import Twist, PoseStamped, Pose, Point
 
-NAME = "FULL NAME"
+NAME = "PACHECO SALGADO MAURICIO"
 
 pub_goal_reached = None
 pub_cmd_vel = None
-loop        = None
-listener    = None
+loop = None
+listener = None
 
 def calculate_control(robot_x, robot_y, robot_a, goal_x, goal_y, alpha, beta, v_max, w_max):
-    v,w = 0,0
+    v, w = 0, 0
     #
     # TODO:
     # Implement the control law given by:
     #
-    # v = v_max*math.exp(-error_a*error_a/alpha)
-    # w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
+    error_a = math.atan2(goal_y - robot_y, goal_x - robot_x) - robot_a
+    error_a = (error_a + math.pi) % (2 * math.pi) - math.pi
+    v = v_max * math.exp(-error_a * error_a / alpha)
+    w = w_max * (2 / (1 + math.exp(-error_a / beta)) - 1)
     #
     # where error_a is the angle error
     # and v_max, w_max, alpha and beta, are tunning constants.
     # Remember to keep error angle in the interval (-pi,pi]
     # Return the tuple [v,w]
     #
-        
-    return [v,w]
+
+    return [v, w]
 
 def follow_path(path, alpha, beta, v_max, w_max):
-    #
-    # TODO:
-    # Use the calculate_control function to move the robot along the path.
-    # Path is given as a sequence of points [[x0,y0], [x1,y1], ..., [xn,yn]]
-    # You can use the following steps to perform the path tracking:
-    #
-    # Set goal point as the first point of the path
-    # Get robot position with Pr, robot_a = get_robot_pose()
-    #
-    # WHILE distance to last point > tol and not rospy.is_shutdown() 
-    #     Calculate control signals v and w
-    #     Publish the control signals with the function publish_twist()
-    #     Get robot position
-    #     If dist to goal point is less than 0.3 (you can change this constant)
-    #         Change goal point to the next point in the path
-    #
-            
-    return
-        
+    # Listas para almacenar las coordenadas y velocidades
+    ruta_deseada = []
+    ruta_real = []
+    velocidades_lineales = []
+    velocidades_angulares = []
 
-def publish_twist(v,w):
+    idx = 0
+    Pg = path[idx]
+    Pr, robot_a = get_robot_pose()
+
+    while numpy.linalg.norm(path[-1] - Pr) > 0.1 and not rospy.is_shutdown():
+        # Almacenar la ruta deseada (punto objetivo actual)
+        ruta_deseada.append(Pg)
+
+        v, w = calculate_control(Pr[0], Pr[1], robot_a, Pg[0], Pg[1], alpha, beta, v_max, w_max)
+
+        # Almacenar las velocidades
+        velocidades_lineales.append(v)
+        velocidades_angulares.append(w)
+
+        publish_twist(v, w)
+        Pr, robot_a = get_robot_pose()
+
+        # Almacenar la ruta real (posición actual del robot)
+        ruta_real.append(Pr)
+
+        if numpy.linalg.norm(Pg - Pr) < 0.3:
+            idx = min(idx + 1, len(path) - 1)
+            Pg = path[idx]
+
+    # Guardar la ruta deseada en un archivo CSV
+    with open('ruta_deseada.csv', 'w') as archivo_csv:
+        archivo_csv.write("X,Y\n")  # Encabezados
+        for punto in ruta_deseada:
+            archivo_csv.write(f"{punto[0]},{punto[1]}\n")
+
+    # Guardar la ruta real en un archivo CSV
+    with open('ruta_real.csv', 'w') as archivo_csv:
+        archivo_csv.write("X,Y\n")  # Encabezados
+        for punto in ruta_real:
+            archivo_csv.write(f"{punto[0]},{punto[1]}\n")
+
+    # Guardar las velocidades en un archivo CSV
+    with open('velocidades.csv', 'w') as archivo_csv:
+        archivo_csv.write("Lineal,Angular\n")  # Encabezados
+        for v, w in zip(velocidades_lineales, velocidades_angulares):
+            archivo_csv.write(f"{v},{w}\n")
+
+    return ruta_deseada, ruta_real, velocidades_lineales, velocidades_angulares
+
+def publish_twist(v, w):
     loop = rospy.Rate(20)
     msg = Twist()
     msg.linear.x = v
     msg.angular.z = w
     pub_cmd_vel.publish(msg)
     loop.sleep()
-    
-    
+
 def callback_global_goal(msg):
     print("Calculating path from robot pose to " + str([msg.pose.position.x, msg.pose.position.y]))
     [robot_x, robot_y], robot_a = get_robot_pose()
@@ -83,14 +114,14 @@ def callback_global_goal(msg):
         print("Cannot calculate path")
         return
     try:
-        smooth_path = rospy.ServiceProxy('/path_planning/smooth_path',ProcessPath)(ProcessPathRequest(path=path)).processed_path
+        smooth_path = rospy.ServiceProxy('/path_planning/smooth_path', ProcessPath)(ProcessPathRequest(path=path)).processed_path
         path = smooth_path
     except:
         pass
-    v_max = rospy.get_param("~v_max",0.8)
-    w_max = rospy.get_param("~w_max",1.0)
-    alpha = rospy.get_param("~alpha",1.0)
-    beta  = rospy.get_param("~beta", 0.1)
+    v_max = rospy.get_param("~v_max", 0.8)
+    w_max = rospy.get_param("~w_max", 1.0)
+    alpha = rospy.get_param("~alpha", 1.0)
+    beta = rospy.get_param("~beta", 0.1)
     print("Following path with [v_max, w_max, alpha, beta]=" + str([v_max, w_max, alpha, beta]))
     follow_path([numpy.asarray([p.pose.position.x, p.pose.position.y]) for p in path.poses], alpha, beta, v_max, w_max)
     pub_cmd_vel.publish(Twist())
@@ -99,10 +130,10 @@ def callback_global_goal(msg):
 
 def get_robot_pose():
     try:
-        ([x, y, z], [qx,qy,qz,qw]) = listener.lookupTransform('map', 'base_link', rospy.Time(0))
-        return numpy.asarray([x, y]), 2*math.atan2(qz, qw)
+        ([x, y, z], [qx, qy, qz, qw]) = listener.lookupTransform('map', 'base_link', rospy.Time(0))
+        return numpy.asarray([x, y]), 2 * math.atan2(qz, qw)
     except:
-        return numpy.asarray([0,0]),0
+        return numpy.asarray([0, 0]), 0
 
 def main():
     global pub_cmd_vel, pub_goal_reached, loop, listener
@@ -123,4 +154,3 @@ if __name__ == '__main__':
         main()
     except rospy.ROSInterruptException:
         pass
-    
