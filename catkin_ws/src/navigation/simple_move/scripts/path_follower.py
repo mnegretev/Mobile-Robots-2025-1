@@ -2,7 +2,7 @@
 #
 # MOBILE ROBOTS - FI-UNAM, 2025-1
 # PATH FOLLOWING
-#
+# Linea agregada para el git
 # Instructions:
 # Write the code necessary to move the robot along a given path.
 # Consider a differential base. Max linear and angular speeds
