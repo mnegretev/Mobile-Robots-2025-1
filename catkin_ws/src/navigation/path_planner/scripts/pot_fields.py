@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # OBSTACLE AVOIDANCE BY POTENTIAL FIELDS
 #
 # Instructions:
@@ -33,6 +33,7 @@ def calculate_control(goal_x, goal_y, alpha, beta):
     # Implement the control law given by:
     # v = v_max*math.exp(-error_a*error_a/alpha)
     # w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
+    # Consider that goal point is given w.r.t. robot, i.e., robot is always at zero.
     # Return v and w as a tuble [v,w]
     #    
     
@@ -42,10 +43,11 @@ def attraction_force(goal_x, goal_y, eta):
     force_x, force_y = 0,0
     #
     # TODO:
-    # Calculate the attraction force, given the robot and goal positions.
+    # Calculate the attraction force, given the goal positions
+    # w.r.t. robot's frame, i.e., robot is always at zero.
     # Return a tuple of the form [force_x, force_y]
     # where force_x and force_y are the X and Y components
-    # of the resulting attraction force
+    # of the resulting attraction force w.r.t. robot
     #
     
     return numpy.asarray([force_x, force_y])
@@ -73,8 +75,18 @@ def rejection_force(laser_readings, zeta, d0):
 def move_by_pot_fields(global_goal_x, global_goal_y, epsilon, tol, eta, zeta, d0, alpha, beta):
     #
     # TODO
-    # Implement potential fields given a goal point and tunning constants 
+    # Implement potential fields given a goal point and tunning constants.
+    # You can use the following steps:
     #
+    # Get the goal point w.r.t. robot by calling the get_goal_point_wrt_robot function.
+    # WHILE distance to goal is greater than a tolerance AND not rospy.is_shutdown():
+    #    Calculate the attraction force Fa (call the corresponding function)
+    #    Calculate the rejection force Fr (call the corresponding function)
+    #    Calculate the resulting force F = Fa + Fr
+    #    Calculate the next position P the robot should move to, using gradient descend: P = -epsilon*F
+    #    Calculate the control laws v,w to move the robots towards P
+    #    Call the function publish_speed_and_forces(v, w, Fa, Fr, F) (moves the robot and displays forces)
+    #    Get the goal point w.r.t. robot by calling the get_goal_point_wrt_robot function.
     
     return
         
