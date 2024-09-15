@@ -19,21 +19,24 @@ from navig_msgs.srv import ProcessPathResponse
 NAME = "FULL NAME"
 
 def smooth_path(Q, alpha, beta, max_steps):
-    #
-    # TODO:
-    # Write the code to smooth the path Q, using the gradient descend algorithm,
-    # and return a new smoothed path P.
-    # Path is composed of a set of points [x,y] as follows:
-    # [[x0,y0], [x1,y1], ..., [xn,ym]].
-    # The smoothed path must have the same shape.
-    # Return the smoothed path.
-    #
     P = numpy.copy(Q)
-    tol     = 0.00001                   
-    nabla   = numpy.full(Q.shape, float("inf"))
-    epsilon = 0.1                       
+    tol = 0.00001  # Tolerancia
+    epsilon = 0.1  # Paso
+    steps = 0 
+    n = len(Q)  # puntos en el camino
     
-    
+    nabla = numpy.zeros(Q.shape) # inicializar en 0
+    while steps < max_steps:
+        prev_P = numpy.copy(P) 
+        for i in range(1, n - 1):
+            grad_smooth = 2 * P[i] - P[i - 1] - P[i + 1] #gradiente suavizado
+            grad_attract = P[i] - Q[i]
+            nabla[i] = alpha * grad_smooth + beta * grad_attract
+        P -= epsilon * nabla
+        if numpy.linalg.norm(P - prev_P) < tol: # revisar tolerancia si es menor
+            break
+       
+        steps += 1  
     return P
 
 def callback_smooth_path(req):
