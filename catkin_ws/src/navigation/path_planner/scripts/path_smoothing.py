@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # PATH SMOOTHING BY GRADIENT DESCEND
 #
 # Instructions:
@@ -19,6 +19,18 @@ from navig_msgs.srv import ProcessPathResponse
 NAME = "FULL NAME"
 
 def smooth_path(Q, alpha, beta, max_steps):
+<<<<<<< HEAD
+=======
+    #
+    # TODO:
+    # Write the code to smooth the path Q, using the gradient descend algorithm,
+    # and return a new smoothed path P.
+    # Path is given as a set of points [x,y] as follows:
+    # [[x0,y0], [x1,y1], ..., [xn,ym]].
+    # The smoothed path must have the same shape.
+    # Return the smoothed path.
+    #
+>>>>>>> 25ae35dd34c9a4f3f39ed96001fdfe8e8199fb55
     P = numpy.copy(Q)
     tol = 0.00001  # Tolerancia
     epsilon = 0.1  # Paso
