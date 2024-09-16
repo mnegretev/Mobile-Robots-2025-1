@@ -71,7 +71,6 @@ def follow_path(path, alpha, beta, v_max, w_max):
     data_vw = open("data_vw.csv", "w")
     Pr, robot_a = get_robot_pose()
     data_file = open("data.csv", "w")
-    Pr, robot_a = get_robot_pose()
     while numpy.linalg.norm(path[-1] - Pr) > 0.1 and not rospy.is_shutdown():
         v,w = calculate_control(Pr[0], Pr[1], robot_a, Pg[0], Pg[1], alpha, beta, v_max, w_max)
         publish_twist(v,w)
@@ -82,8 +81,7 @@ def follow_path(path, alpha, beta, v_max, w_max):
         print(Pr)
         data_file.write(str(Pr[0]) + "," + str(Pr[1]) + "\n")
         data_vw.write(str(v) + "," + str(w) + "\n")
-    data_file.close()    
-            Pg = path[idx]        
+    data_file.close()           
     return
         
 
