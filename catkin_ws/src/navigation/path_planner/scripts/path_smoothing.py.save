@@ -37,7 +37,7 @@ def smooth_path(Q, alpha, beta, max_steps):
     nabla[-1] = 0
 
     while numpy.linalg.norm(nabla) > tol and steps < max_steps:
-       for i in range (1, len(P)-1 ):
+       for i in range (1, len(P-1) ):
            nabla[i] = alpha*(2*P[i] - P[i-1] - P[i+1]) + beta*(P[i]-Q[i])
        P = P - epsilon*nabla
        steps+=1
