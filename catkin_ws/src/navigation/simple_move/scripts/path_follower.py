@@ -91,7 +91,7 @@ def follow_path(path, alpha, beta, v_max, w_max):
             
     data_path.close()
     data_real.close()
-    data_vel.close() }
+    data_vel.close() 
     
     return
         
