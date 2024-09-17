@@ -26,11 +26,15 @@ w_max = 1.0
 
 NAME = "FULL NAME"
 
-def calculate_control(goal_x, goal_y, alpha, beta):
+def calculate_control(robot_a, goal_x, goal_y, alpha, beta, v_max, w_max):
     v,w = 0,0
     #
     # TODO:
     # Implement the control law given by:
+    error_a = math.atan2(goal_y, goal_x) - robot_a
+    error_a = ((error_a + math.pi)%(2*math.pi)) - math.pi
+    v = v_max*math.exp(-error_a*error_a/alpha)
+    w = w_max*((2/(1 + math.exp(-error_a/beta))) - 1)
     # v = v_max*math.exp(-error_a*error_a/alpha)
     # w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
     # Return v and w as a tuble [v,w]
@@ -47,6 +51,8 @@ def attraction_force(goal_x, goal_y, eta):
     # where force_x and force_y are the X and Y components
     # of the resulting attraction force
     #
+    force_x=-eta*(goal_x)/math.sqrt(goal_x**2+goal_y**2)
+    force_y=-eta*(goal_y)/math.sqrt(goal_x**2+goal_y**2)
     
     return numpy.asarray([force_x, force_y])
 
@@ -66,7 +72,18 @@ def rejection_force(laser_readings, zeta, d0):
     # where force_x and force_y are the X and Y components
     # of the resulting rejection force
     #
+    for i in range(0,N):
+        
+        if laser_readings[i][0] < d0:
+            rho = zeta * math.sqrt((1/laser_readings[i][0])-(1/d0))
+        else:
+            rho = 0
+        
+        force_x = force_x + (rho * math.cos(laser_readings[i][1]))
+        force_y = force_y + (rho * math.sin(laser_readings[i][1]))
     
+    force_x = force_x / N
+    force_y = force_y / N
         
     return numpy.asarray([force_x, force_y])
 
@@ -75,6 +92,16 @@ def move_by_pot_fields(global_goal_x, global_goal_y, epsilon, tol, eta, zeta, d0
     # TODO
     # Implement potential fields given a goal point and tunning constants 
     #
+    Pg = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
+    while numpy.linalg.norm(Pg) > tol and not rospy.is_shutdown():
+        Fa = attraction_force(Pg[0], Pg[1], eta)
+        Fr = rejection_force(laser_readings, zeta, d0)
+        F = Fa + Fr
+        P = -epsilon * F
+        rx, ry, robot_a = get_robot_pose(listener)
+        v, w = calculate_control(robot_a, Pg[0], Pg[1], alpha, beta, v_max, w_max)
+        publish_speed_and_forces(v, w, Fa, Fr, F)
+        Pg = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
     
     return
         
@@ -88,11 +115,14 @@ def get_goal_point_wrt_robot(goal_x, goal_y):
     return [goal_x, goal_y]
 
 def get_robot_pose(listener):
+#def get_robot_pose():
     try:
         ([x, y, z], [qx,qy,qz,qw]) = listener.lookupTransform('map', 'base_link', rospy.Time(0))
         return [x, y, 2*math.atan2(qz, qw)]
+        #return numpy.asarray([x, y]), 2*math.atan2(qz, qw)
     except:
         return [0,0,0]
+        #return numpy.asarray([0,0]),0
 
 def publish_speed_and_forces(v, w, Fa, Fr, F):
     loop = rospy.Rate(20)
