@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # OBSTACLE AVOIDANCE BY POTENTIAL FIELDS
 #
 # Instructions:
@@ -37,6 +37,7 @@ def calculate_control(robot_a, goal_x, goal_y, alpha, beta, v_max, w_max):
     w = w_max*((2/(1 + math.exp(-error_a/beta))) - 1)
     # v = v_max*math.exp(-error_a*error_a/alpha)
     # w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
+    # Consider that goal point is given w.r.t. robot, i.e., robot is always at zero.
     # Return v and w as a tuble [v,w]
     #    
     
@@ -46,10 +47,11 @@ def attraction_force(goal_x, goal_y, eta):
     force_x, force_y = 0,0
     #
     # TODO:
-    # Calculate the attraction force, given the robot and goal positions.
+    # Calculate the attraction force, given the goal positions
+    # w.r.t. robot's frame, i.e., robot is always at zero.
     # Return a tuple of the form [force_x, force_y]
     # where force_x and force_y are the X and Y components
-    # of the resulting attraction force
+    # of the resulting attraction force w.r.t. robot
     #
     force_x=-eta*(goal_x)/math.sqrt(goal_x**2+goal_y**2)
     force_y=-eta*(goal_y)/math.sqrt(goal_x**2+goal_y**2)
@@ -90,8 +92,10 @@ def rejection_force(laser_readings, zeta, d0):
 def move_by_pot_fields(global_goal_x, global_goal_y, epsilon, tol, eta, zeta, d0, alpha, beta):
     #
     # TODO
-    # Implement potential fields given a goal point and tunning constants 
+    # Implement potential fields given a goal point and tunning constants.
+    # You can use the following steps:
     #
+<<<<<<< HEAD
     Pg = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
     while numpy.linalg.norm(Pg) > tol and not rospy.is_shutdown():
         Fa = attraction_force(Pg[0], Pg[1], eta)
@@ -102,6 +106,17 @@ def move_by_pot_fields(global_goal_x, global_goal_y, epsilon, tol, eta, zeta, d0
         v, w = calculate_control(robot_a, Pg[0], Pg[1], alpha, beta, v_max, w_max)
         publish_speed_and_forces(v, w, Fa, Fr, F)
         Pg = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
+=======
+    # Get the goal point w.r.t. robot by calling the get_goal_point_wrt_robot function.
+    # WHILE distance to goal is greater than a tolerance AND not rospy.is_shutdown():
+    #    Calculate the attraction force Fa (call the corresponding function)
+    #    Calculate the rejection force Fr (call the corresponding function)
+    #    Calculate the resulting force F = Fa + Fr
+    #    Calculate the next position P the robot should move to, using gradient descend: P = -epsilon*F
+    #    Calculate the control laws v,w to move the robots towards P
+    #    Call the function publish_speed_and_forces(v, w, Fa, Fr, F) (moves the robot and displays forces)
+    #    Get the goal point w.r.t. robot by calling the get_goal_point_wrt_robot function.
+>>>>>>> cbf089b7739221eba2830c866e9a8198c38633de
     
     return
         

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # PATH FOLLOWING
 #
 # Instructions:
@@ -19,7 +19,7 @@ from nav_msgs.srv import GetPlan, GetPlanRequest
 from navig_msgs.srv import ProcessPath, ProcessPathRequest
 from geometry_msgs.msg import Twist, PoseStamped, Pose, Point
 
-NAME = "FULL NAME"
+NAME = "EMILIANO GUZMAN BOLAN"
 
 pub_goal_reached = None
 pub_cmd_vel = None
@@ -82,7 +82,11 @@ def follow_path(path, alpha, beta, v_max, w_max):
         data_file.write(str(Pr[0])+","+str(Pr[1])+"\n")
         data_vw.write(str(Pr[0])+","+str(Pr[1])+"\n")
     data_file.close()
+<<<<<<< HEAD
     data_vw.close()       
+=======
+    data_vw.close()
+>>>>>>> cbf089b7739221eba2830c866e9a8198c38633de
     return
         
 
