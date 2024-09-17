@@ -28,7 +28,7 @@ def smooth_path(Q, alpha, beta, max_steps):
     nabla = numpy.full(Q.shape, float("inf"))  # Inicializar el gradiente con valores altos
     
     # Bucle principal: Descenso de gradiente
-    while np.linalg.norm(nabla) > tol and steps < max_steps:
+    while numpy.linalg.norm(nabla) > tol and steps < max_steps:
         nabla.fill(0)  # Reiniciar el gradiente para cada iteración
         
         # Calcular el gradiente para cada punto excepto el primero y el último
