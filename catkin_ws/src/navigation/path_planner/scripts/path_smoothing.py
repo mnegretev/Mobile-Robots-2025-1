@@ -21,24 +21,24 @@ NAME = "González Aguilar Julio César"
 def smooth_path(Q, alpha, beta, max_steps):
     # Inicializar variables
     steps = 0
-    P = numpy.copy(Q)  # Inicializar el camino suavizado como una copia del original
-    tol = 0.00001  # Tolerancia para el gradiente
-    epsilon = 0.1  # Tasa de aprendizaje
+    P = numpy.copy(Q)  #  
+    tol = 0.00001  # 
+    epsilon = 0.1  
     n = len(Q)  # Número de puntos en el camino
     nabla = numpy.full(Q.shape, float("inf"))  # Inicializar el gradiente con valores altos
     
     # Bucle principal: Descenso de gradiente
     while numpy.linalg.norm(nabla) > tol and steps < max_steps:
-        nabla.fill(0)  # Reiniciar el gradiente para cada iteración
+        nabla.fill(0)  
         
-        # Calcular el gradiente para cada punto excepto el primero y el último
+        
         for i in range(1, n - 1):
             nabla[i] = alpha * (2 * P[i] - P[i - 1] - P[i + 1]) + beta * (P[i] - Q[i])
         
-        # Actualizar el camino con el gradiente
+        
         P -= epsilon * nabla
         
-        # Incrementar el contador de pasos
+        
         steps += 1
     
     # Retornar el camino suavizado
