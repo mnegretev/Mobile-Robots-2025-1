@@ -8,7 +8,7 @@
 # MODIFY ONLY THE SECTIONS MARKED WITH THE 'TODO' COMMENT
 #
 
-import numpy as np
+import numpy 
 import heapq
 import rospy
 from nav_msgs.msg import Path
@@ -21,11 +21,11 @@ NAME = "González Aguilar Julio César"
 def smooth_path(Q, alpha, beta, max_steps):
     # Inicializar variables
     steps = 0
-    P = np.copy(Q)  # Inicializar el camino suavizado como una copia del original
+    P = numpy.copy(Q)  # Inicializar el camino suavizado como una copia del original
     tol = 0.00001  # Tolerancia para el gradiente
     epsilon = 0.1  # Tasa de aprendizaje
     n = len(Q)  # Número de puntos en el camino
-    nabla = np.full(Q.shape, float("inf"))  # Inicializar el gradiente con valores altos
+    nabla = numpy.full(Q.shape, float("inf"))  # Inicializar el gradiente con valores altos
     
     # Bucle principal: Descenso de gradiente
     while np.linalg.norm(nabla) > tol and steps < max_steps:
