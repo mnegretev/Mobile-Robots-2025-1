@@ -2,7 +2,7 @@
 #
 # MOBILE ROBOTS - FI-UNAM, 2025-1
 # PATH SMOOTHING BY GRADIENT DESCEND
-#
+# Torres Azael
 # Instructions:
 # Write the code necessary to smooth a path using the gradient descend algorithm.
 # MODIFY ONLY THE SECTIONS MARKED WITH THE 'TODO' COMMENT
