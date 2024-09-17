@@ -33,6 +33,7 @@ def calculate_control(robot_x, robot_y, robot_a, goal_x, goal_y, alpha, beta, v_
     # Implement the control law given by:
     #
     error_a = math.atan2(goal_y - robot_y, goal_x - robot_x) - robot_a
+    error_a = (error_a + math.pi)%(2*math.pi) - math.pi
     v = v_max*math.exp(-error_a*error_a/alpha)
     w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
     #
@@ -60,7 +61,6 @@ def follow_path(path, alpha, beta, v_max, w_max):
     #     Get robot position
     #     If dist to goal point is less than 0.3 (you can change this constant)
     #         Change goal point to the next point in the path
-    #
     idx = 0
     Pg = path[idx]
     Pr, robot_a = get_robot_pose()
