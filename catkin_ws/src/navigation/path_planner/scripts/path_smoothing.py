@@ -8,7 +8,7 @@
 # MODIFY ONLY THE SECTIONS MARKED WITH THE 'TODO' COMMENT
 #
 
-import numpy
+import numpy as np
 import heapq
 import rospy
 from nav_msgs.msg import Path
