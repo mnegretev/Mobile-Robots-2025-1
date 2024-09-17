@@ -16,24 +16,32 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from navig_msgs.srv import ProcessPath
 from navig_msgs.srv import ProcessPathResponse
 
-NAME = "FULL NAME"
+NAME = "González Aguilar Julio César"
 
 def smooth_path(Q, alpha, beta, max_steps):
-    #
-    # TODO:
-    # Write the code to smooth the path Q, using the gradient descend algorithm,
-    # and return a new smoothed path P.
-    # Path is given as a set of points [x,y] as follows:
-    # [[x0,y0], [x1,y1], ..., [xn,ym]].
-    # The smoothed path must have the same shape.
-    # Return the smoothed path.
-    #
-    P = numpy.copy(Q)
-    tol     = 0.00001                   
-    nabla   = numpy.full(Q.shape, float("inf"))
-    epsilon = 0.1                       
+    # Inicializar variables
+    steps = 0
+    P = np.copy(Q)  # Inicializar el camino suavizado como una copia del original
+    tol = 0.00001  # Tolerancia para el gradiente
+    epsilon = 0.1  # Tasa de aprendizaje
+    n = len(Q)  # Número de puntos en el camino
+    nabla = np.full(Q.shape, float("inf"))  # Inicializar el gradiente con valores altos
     
+    # Bucle principal: Descenso de gradiente
+    while np.linalg.norm(nabla) > tol and steps < max_steps:
+        nabla.fill(0)  # Reiniciar el gradiente para cada iteración
+        
+        # Calcular el gradiente para cada punto excepto el primero y el último
+        for i in range(1, n - 1):
+            nabla[i] = alpha * (2 * P[i] - P[i - 1] - P[i + 1]) + beta * (P[i] - Q[i])
+        
+        # Actualizar el camino con el gradiente
+        P -= epsilon * nabla
+        
+        # Incrementar el contador de pasos
+        steps += 1
     
+    # Retornar el camino suavizado
     return P
 
 def callback_smooth_path(req):
