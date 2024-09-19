@@ -24,66 +24,87 @@ laser_readings = None
 v_max = 0.6
 w_max = 1.0
 
-NAME = "Alexis Pizano Bavo"
+NAME = "Pizano Bravo Alexis"
 
 def calculate_control(goal_x, goal_y, alpha, beta):
-    error_a = math.atan2(goal_y, goal_x)  # Error angular basado en la posición del objetivo
-    
-    v = v_max * math.exp(-error_a * error_a / alpha)  # Control de velocidad lineal
-    w = w_max * (2 / (1 + math.exp(-error_a / beta)) - 1)  # Control de velocidad angular
-    
-    return [v, w]
+    v,w = 0,0
+	#
+	# TODO:
+	# Implement the control law given by:
+	# v = v_max*math.exp(-error_a*error_a/alpha)
+	# w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
+	# Return v and w as a tuble [v,w]
+	#
+    error_a = math.atan2(goal_y, goal_x)
+    error_a = ((error_a + math.pi)%(2*math.pi)) - math.pi
+    v = v_max*math.exp(-error_a*error_a/alpha)
+    w = w_max*((2/(1 + math.exp(-error_a/beta))) - 1)
+	
+    return [v,w]
 
 def attraction_force(goal_x, goal_y, eta):
-    # La fuerza de atracción es proporcional a la distancia al objetivo
-    distance = math.sqrt(goal_x**2 + goal_y**2)
-    force_x = -eta * goal_x / distance
-    force_y = -eta * goal_y / distance
-    
-    return numpy.asarray([force_x, force_y])
+   force_x, force_y = 0,0
+	#
+	# TODO:
+	# Calculate the attraction force, given the robot and goal positions.
+	# Return a tuple of the form [force_x, force_y]
+	# where force_x and force_y are the X and Y components
+	# of the resulting attraction force
+	#
+   force_x=-eta*(goal_x)/math.sqrt(goal_x**2+goal_y**2)
+   force_y=-eta*(goal_y)/math.sqrt(goal_x**2+goal_y**2)
+   
+   return numpy.asarray([force_x, force_y])
 
 def rejection_force(laser_readings, zeta, d0):
     N = len(laser_readings)
     if N == 0:
-        return numpy.asarray([0, 0])
-
+        return [0, 0]
     force_x, force_y = 0, 0
-    for distance, angle in laser_readings:
-        if distance < d0:
-            # Fuerza de repulsión proporcional a la inversa de la distancia al obstáculo
-            rho = (1/distance - 1/d0)
-            force_x += zeta * rho * math.cos(angle)
-            force_y += zeta * rho * math.sin(angle)
+	#
+	# TODO:
+	# Calculate the total rejection force given by the average
+	# of the rejection forces caused by each laser reading.
+	# laser_readings is an array where each element is a tuple [distance, angle]
+	# both measured w.r.t. robot's frame.
+	# See lecture notes for equations to calculate rejection forces.
+	# Return a tuple of the form [force_x, force_y]
+	# where force_x and force_y are the X and Y components
+	# of the resulting rejection force
+	#
+    #for i in range(0,N):
+    for [d,theta] in laser_readings:
+        if d < d0:
+            rho = zeta * math.sqrt((1/d)-(1/d0))
+        else:
+            rho = 0
+   	 
+        force_x = force_x + (rho * math.cos(theta))
+        force_y = force_y + (rho * math.sin(theta))
     
-    force_x /= N
-    force_y /= N
+    force_x = force_x / N
+    force_y = force_y / N
     
     return numpy.asarray([force_x, force_y])
 
 def move_by_pot_fields(global_goal_x, global_goal_y, epsilon, tol, eta, zeta, d0, alpha, beta):
-    goal_x, goal_y = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
-    
-    while math.sqrt(goal_x**2 + goal_y**2) > tol and not rospy.is_shutdown():
-        # Calcula las fuerzas de atracción y repulsión
-        Fa = attraction_force(goal_x, goal_y, eta)
+	#
+	# TODO
+	# Implement potential fields given a goal point and tunning constants
+	#
+    Pg = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
+    while numpy.linalg.norm(Pg) > tol and not rospy.is_shutdown():
+        Fa = attraction_force(Pg[0], Pg[1], eta)
         Fr = rejection_force(laser_readings, zeta, d0)
-        
-        # Suma las fuerzas resultantes
         F = Fa + Fr
-        
-        # Gradiente descendente: Calcula la nueva posición
         P = -epsilon * F
         
-        # Calcula las velocidades de control
-        v, w = calculate_control(goal_x, goal_y, alpha, beta)
-        
-        # Publica las velocidades y fuerzas
+        v, w = calculate_control(P[0], P[1], alpha, beta)
         publish_speed_and_forces(v, w, Fa, Fr, F)
-        
-        # Actualiza la posición del objetivo con respecto al robot
-        goal_x, goal_y = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
+        Pg = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
     
     return
+
         
 
 def get_goal_point_wrt_robot(goal_x, goal_y):
@@ -130,7 +151,7 @@ def callback_scan(msg):
 
 def callback_pot_fields_goal(msg):
     [goal_x, goal_y] = [msg.pose.position.x, msg.pose.position.y]
-    print("Moving to goal point " + str([goal_x, goal_y]) + " by potential fields")
+    print("Moving to goal point " + str([goal_x, goal_y]) + " by potential fields"    )
     epsilon = rospy.get_param('~epsilon', 0.5)
     tol     = rospy.get_param('~tol', 0.5)
     eta     = rospy.get_param('~eta', 2.0)
@@ -158,5 +179,3 @@ if __name__ == '__main__':
         main()
     except rospy.ROSInterruptException:
         pass
-
-    
