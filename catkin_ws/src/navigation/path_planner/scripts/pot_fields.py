@@ -24,7 +24,7 @@ laser_readings = None
 v_max = 0.6
 w_max = 1.0
 
-NAME = "FULL NAME"
+NAME = "Gonzalez Aguilar Julio Cesar"
 
 def calculate_control(goal_x, goal_y, alpha, beta):
     v,w = 0,0
@@ -49,6 +49,19 @@ def attraction_force(goal_x, goal_y, eta):
     # where force_x and force_y are the X and Y components
     # of the resulting attraction force w.r.t. robot
     #
+    
+    norm_qg = np.linalg.norm(qg)
+    
+    # Aseguramos que la norma no sea cero para evitar divisiones por cero
+    if norm_qg == 0:
+        return np.array([0, 0])
+    
+    # Calculamos la fuerza atractiva
+    F_att = -eta * (qg / norm_qg)
+    
+    # Asignamos los componentes de la fuerza a force_x y force_y
+    force_x = F_att[0]
+    force_y = F_att[1]
     
     return numpy.asarray([force_x, force_y])
 
