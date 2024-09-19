@@ -24,7 +24,7 @@ laser_readings = None
 v_max = 0.6
 w_max = 1.0
 
-NAME = "FULL NAME"
+NAME = "Alejandro Macias"
 
 def calculate_control(goal_x, goal_y, alpha, beta):
     v,w = 0,0
@@ -164,3 +164,4 @@ if __name__ == '__main__':
     except rospy.ROSInterruptException:
         pass
     
+
