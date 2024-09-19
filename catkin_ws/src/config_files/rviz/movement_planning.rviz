@@ -415,6 +415,8 @@ Visualization Manager:
       Value: true
     - Class: rviz/TF
       Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: false
@@ -601,9 +603,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.424795150756836
+      Pitch: 1.2397949695587158
       Target Frame: <Fixed Frame>
-      Yaw: 0.0004076957702636719
+      Yaw: 0.0054073575884103775
     Saved: ~
 Window Geometry:
   Displays:
@@ -623,5 +625,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1528
-  X: 72
-  Y: 327
+  X: 352
+  Y: 69
