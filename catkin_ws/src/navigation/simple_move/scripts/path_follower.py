@@ -82,11 +82,9 @@ def follow_path(path, alpha, beta, v_max, w_max):
         data_file.write(str(Pr[0])+","+str(Pr[1])+"\n")
         data_vw.write(str(Pr[0])+","+str(Pr[1])+"\n")
     data_file.close()
-<<<<<<< HEAD
     data_vw.close()       
-=======
     data_vw.close()
->>>>>>> cbf089b7739221eba2830c866e9a8198c38633de
+
     return
         
 
