@@ -19,7 +19,7 @@
 #define DISTANCE_THRESHOLD  0.2
 #define ANGLE_THRESHOLD     0.2
 
-#define NOMBRE "APELLIDO_PATERNO_APELLIDO_MATERNO"
+#define NOMBRE "CARMONA OLIVARES"
 
 std::vector<geometry_msgs::Pose2D> get_initial_distribution(int N, float min_x, float max_x, float min_y, float max_y,
                                                              float min_a, float max_a)
@@ -102,7 +102,7 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
     
     /*
      */
-    float sum = 0;
+/*    float sum = 0;
     for(size_t i = 0; i < simulated_scans.size(); i++)
     {
         float delta = 0;
@@ -122,7 +122,25 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
     }
     for(size_t i=0; i < similarities.size(); i++)
         similarities[i] /= sum;
+*/
 
+    for (size_t i=0; i < simulated_scans.size(); i++)
+    {
+        float delta=0;
+        for(size_t j=0; j< simulated_scans[i].ranges.size(); j++)
+            if(real_scan.ranges[j*downsampling] < real_scan.range_max && simulated_scans[i].ranges[j] < real_scan.range_max)
+                delta += fabs(simulated_scans[i].ranges[j]- real_scan.ranges[j*downsampling]);
+            else
+                delta += real_scan.range_max;
+     	delta /= simulated_scans[i].ranges.size();
+     	similarities[i] = exp(-delta*delta/sigma2);
+    }
+    double sum=0;
+    for(int i=0; i < similarities.size(); i++)
+        sum += similarities[i];
+    for(int i=0; i < similarities.size(); i++)
+        similarities[i] /= sum;
+        
     return similarities;
 }
 
