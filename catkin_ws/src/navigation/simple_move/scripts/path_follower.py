@@ -20,7 +20,7 @@ from nav_msgs.srv import GetPlan, GetPlanRequest
 from navig_msgs.srv import ProcessPath, ProcessPathRequest
 from geometry_msgs.msg import Twist, PoseStamped, Pose, Point
 
-NAME = "Jorge Jair Marin"
+NAME = "Jorge Jair Marin Barrera"
 
 pub_goal_reached = None
 pub_cmd_vel = None
