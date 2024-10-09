@@ -111,6 +111,7 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
 			delta += fabs(real_scan.ranges[j*downsampling] - simulated_scans[i].ranges[j]);
 		}
 	}
+	delta /= simulated_scans[i].ranges.size();
 	similarities[i] = exp(-delta*delta/sigma2);
 	sum += similarities[i];
     }
