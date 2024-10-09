@@ -24,18 +24,18 @@ laser_readings = None
 v_max = 0.6
 w_max = 1.0
 
-NAME = "FULL NAME"
+NAME = "Jesus Honorato Valverde Flores"
 
 def calculate_control(goal_x, goal_y, alpha, beta):
     v,w = 0,0
     #
     # TODO:
     # Implement the control law given by:
-    # v = v_max*math.exp(-error_a*error_a/alpha)
-    # w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
+    v = v_max*math.exp(-error_a*error_a/alpha)
+    w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
     # Consider that goal point is given w.r.t. robot, i.e., robot is always at zero.
     # Return v and w as a tuble [v,w]
-    #    
+      
     
     return [v,w]
 
