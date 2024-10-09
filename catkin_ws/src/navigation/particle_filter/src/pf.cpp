@@ -53,8 +53,8 @@ void move_particles(std::vector<geometry_msgs::Pose2D>& particles, float delta_x
      * You can use the function rnd.gaussian(mean, variance)
      */
     for(size_t i = 0; i<particles.size(); i++){
-	particles[i].x += (delta_x * cos()) + (delta_y * sin()) + rnd.gaussian(0,sigma2);
-	particles[i].y += (delta_x * sin()) + (delta_y * cos()) + rnd.gaussian(0,sigma2);
+	particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0,sigma2);
+	particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0,sigma2);
 	particles[i].theta += delta_t +  rnd.gaussian(0,sigma2);
        }
 
@@ -97,16 +97,22 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
      * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
      * ensure both simulated and real ranges are finite values. 
      */
+    float media = 0;
     for(size_t i=0; i<simulated_scans.size(); i++){
 	float delta = 0;
-	for(size_t j=0; simulated.scans[i].ranges.sizes(),j++)
+	for(size_t j=0; simulated_scans[i].ranges.size();j++)
 	   if(simulated_scans[i].ranges[j] >= real_scan.range_min &&
 	      simulated_scans[i].ranges[j] <= real_scan.range_max &&
-              real_scam.ranges[j*downsampling] >= real_scan.ranges_min &&
-	      real_scam.ranges[j*downsampling] <= real_scan.ranges_max){
-               delta += fabs(real_scam.ranges[j*downsampling] - simulated.scans[i].ranges[j]);
+              real_scan.ranges[j*downsampling] >= real_scan.range_min &&
+	      real_scan.ranges[j*downsampling] <= real_scan.range_max){
+               delta += fabs(real_scan.ranges[j*downsampling] - simulated_scans[i].ranges[j]);
 	      }
 	similarities[i] = exp( (-delta*delta) /sigma2);
+	media += similarities[i];
+	}
+
+    for(size_t k=0; k<similarities.size(); k++){
+	 similarities[k] /= media;
 	}
     /*
      */
@@ -124,7 +130,7 @@ int random_choice(std::vector<float>& probabilities)
      * Return the chosen integer. 
      */
     float x = rnd.uniformReal(0,1);
-    for(int i = 0; i <probabilities.size()){
+    for(int i = 0; i <probabilities.size(); i++){
 	 if(x < probabilities[i]){
 	     return x;
 	   }
@@ -268,7 +274,7 @@ int main(int argc, char** argv)
     float sigma2_sensor;
     float sigma2_movement;
     float sigma2_resampling;
-    ros::param::param<int>  ("~N", N_particles, 100);
+    ros::param::param<int>  ("~N", N_particles, 500);
     ros::param::param<float>("~minX", init_min_x, 1.0);
     ros::param::param<float>("~minY", init_min_y, -2.0);
     ros::param::param<float>("~minA", init_min_a, -3.1);
