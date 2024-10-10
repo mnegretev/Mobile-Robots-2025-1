@@ -50,7 +50,7 @@ def attraction_force(goal_x, goal_y, eta):
     # of the resulting attraction force w.r.t. robot
     #
     
-    norm_qg = np.linalg.norm(qg)
+    norm_qg = numpy.linalg.norm(qg)
     
     # Aseguramos que la norma no sea cero para evitar divisiones por cero
     if norm_qg == 0:
@@ -68,8 +68,28 @@ def attraction_force(goal_x, goal_y, eta):
 def rejection_force(laser_readings, zeta, d0):
     N = len(laser_readings)
     if N == 0:
-        return [0, 0]
+        return numpy.array([0, 0])
+    
+    # Inicializamos las componentes de la fuerza
     force_x, force_y = 0, 0
+    
+    # Iteramos sobre todas las lecturas del láser (cada lectura tiene [d, theta])
+    for d, theta in laser_readings:
+        # Calculamos ρ solo si d < d0, de lo contrario, ρ = 0
+        if d < d0:
+            rho = zeta * (numpy.sqrt(1/d) - numpy.sqrt(1/d0))
+        else:
+            rho = 0
+        
+        # Actualizamos las componentes de la fuerza repulsiva
+        force_x += rho * numpy.cos(theta)
+        force_y += rho * numpy.sin(theta)
+    
+    # Promediamos las fuerzas
+    force_x /= N
+    force_y /= N
+    
+
     #
     # TODO:
     # Calculate the total rejection force given by the average
@@ -100,6 +120,44 @@ def move_by_pot_fields(global_goal_x, global_goal_y, epsilon, tol, eta, zeta, d0
     #    Calculate the control laws v,w to move the robots towards P
     #    Call the function publish_speed_and_forces(v, w, Fa, Fr, F) (moves the robot and displays forces)
     #    Get the goal point w.r.t. robot by calling the get_goal_point_wrt_robot function.
+
+    
+    goal_point=numpy.linalg.norm(get_goal_point_wrt_robot(global_goal_x, global_goal_y))
+    
+    # Mientras la distancia al objetivo sea mayor que la tolerancia
+    print("goal point ")
+    print(goal_point)
+    print("shut ")
+    print(tol)
+    while goal_point > tol and not rospy.is_shutdown():
+        # Calcular la fuerza de atracción usando la función attraction_force
+        #Fa = attraction_force(numpy.array([goal_x_robot, goal_y_robot]), eta)
+        Fa = attraction_force(global_goal_x, global_goal_y, eta)
+        
+        # Obtener las lecturas del láser (esto se asume como entrada de sensores)
+        callback_scan
+
+        
+        # Calcular la fuerza de repulsión usando la función rejection_force
+        Fr = rejection_force(laser_readings, zeta, d0)
+        
+        # Calcular la fuerza resultante F = Fa + Fr
+        F = Fa + Fr
+        
+        # Usar gradiente descendente para calcular la nueva posición del robot
+        P = -epsilon * F
+        
+        # Calcular las leyes de control v (lineal) y w (angular) para mover el robot hacia P
+        v, w = calculate_control_laws(global_goal_x, global_goal_y, alpha, beta)
+        
+        # Publicar la velocidad y las fuerzas usando la función proporcionada
+        publish_speed_and_forces(v, w, Fa, Fr, F)
+        
+        # Actualizar el punto objetivo con respecto al marco del robot
+        goal_x_robot, goal_y_robot = get_goal_point_wrt_robot(global_goal_x, global_goal_y)
+
+    
+    
     
     return
         
