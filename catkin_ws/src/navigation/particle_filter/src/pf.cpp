@@ -33,7 +33,7 @@ std::vector<geometry_msgs::Pose2D> get_initial_distribution(int N, float min_x, 
      * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
      */
      
-     for(size_t i=0; i<N; i++)
+     for(size_t i = 0; i < N; i++)
      {
      	particles[i].x = rnd.uniformReal(min_x, max_x);
      	particles[i].y = rnd.uniformReal(min_y, max_y);
@@ -105,21 +105,22 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
     
     /*
      */
-     float sum = 0;
-     for(size_t i = 0; i < simulated_scans.size(); i++)
-     {
-     	float delta = 0;
-     	for(size_t j = 0; j < simulated_scans[i].ranges.size(); j++)
-     		if(simulated_scans[i].ranges[j] >= real_scan.range_min &&
-     		   simulated_scans[i].ranges[j] <= real_scan.range_max &&
-     		   real_scan.ranges[j*downsampling] >= real_scan.range_min &&
-     		   real_scan.ranges[j*downsampling] <= real_scan.range_max)
-     		   delta += fabs(real_scan.ranges[j*downsampling] - simulated_scans[i].ranges[j]);
-     		   
+     for (size_t i=0; i < simulated_scans.size(); i++)
+    {
+        float delta=0;
+        for(size_t j=0; j< simulated_scans[i].ranges.size(); j++)
+            if(real_scan.ranges[j*downsampling] < real_scan.range_max && simulated_scans[i].ranges[j] < real_scan.range_max)
+                delta += fabs(simulated_scans[i].ranges[j]- real_scan.ranges[j*downsampling]);
+            else
+                delta += real_scan.range_max;
      	delta /= simulated_scans[i].ranges.size();
      	similarities[i] = exp(-delta*delta/sigma2);
-     	sum += similarities[i];
-     }
+    }
+    double sum=0;
+    for(int i=0; i < similarities.size(); i++)
+        sum += similarities[i];
+    for(int i=0; i < similarities.size(); i++)
+        similarities[i] /= sum;
      
     return similarities;
 }
@@ -137,10 +138,12 @@ int random_choice(std::vector<float>& probabilities)
     
     float x = rnd.uniformReal(0,1);
     for(int i = 0; i < probabilities.size(); i++)
+    {
     	if(x < probabilities[i])
     		return i;
     	else
     		x -= probabilities[i];
+    }
     return -1;
 }
 
@@ -165,6 +168,8 @@ std::vector<geometry_msgs::Pose2D> resample_particles(std::vector<geometry_msgs:
      	int idx = random_choice(probabilities);
      	resampled_particles[i] = particles[idx];
      	resampled_particles[i].x += rnd.gaussian(0,sigma2);
+     	resampled_particles[i].y += rnd.gaussian(0,sigma2);
+        resampled_particles[i].theta += rnd.gaussian(0,sigma2);
      }
      
     return resampled_particles;
