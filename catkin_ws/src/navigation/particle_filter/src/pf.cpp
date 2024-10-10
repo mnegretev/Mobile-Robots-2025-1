@@ -19,24 +19,25 @@
 #define DISTANCE_THRESHOLD  0.2
 #define ANGLE_THRESHOLD     0.2
 
-#define NOMBRE "Torres Anguiano Azael A."
+#define NOMBRE "Torres Anguiano Azael .A"
 
 std::vector<geometry_msgs::Pose2D> get_initial_distribution(int N, float min_x, float max_x, float min_y, float max_y,
                                                              float min_a, float max_a)
 {
     random_numbers::RandomNumberGenerator rnd;
     std::vector<geometry_msgs::Pose2D> particles(N);
-    for(size_t i = 0; i<N ; i++){
-	particles[i].x = rnd.uniformReal(min_x, max_x);
- 	particles[i].y = rnd.uniformReal(min_y, max_y);
-        particles[i].theta = rnd.uniformReal(min_a, max_a);
-	}
     /*
      * TODO:
      * Generate a set of N particles (each particle represented by a Pose2D message)
      * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
      * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
      */
+    for(size_t i = 0; i < N; i++)
+    {
+        particles[i].x = rnd.uniformReal(min_x, max_x);
+        particles[i].y = rnd.uniformReal(min_y, max_y);
+        particles[i].theta = rnd.uniformReal(min_a, max_a);
+    }
     return particles;
 }
 
@@ -52,12 +53,12 @@ void move_particles(std::vector<geometry_msgs::Pose2D>& particles, float delta_x
      * Add gaussian noise to each new position. Use sigma2 as variance.
      * You can use the function rnd.gaussian(mean, variance)
      */
-    for(size_t i = 0; i<particles.size(); i++){
-	particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0,sigma2);
-	particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0,sigma2);
-	particles[i].theta += delta_t +  rnd.gaussian(0,sigma2);
-       }
-
+     for(size_t i = 0; i < particles.size(); i++)
+     {
+         particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0,sigma2);
+         particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0,sigma2);
+         particles[i].theta += delta_t + rnd.gaussian(0,sigma2);
+     }
 }
 
 std::vector<sensor_msgs::LaserScan> simulate_particle_scans(std::vector<geometry_msgs::Pose2D>& particles,
@@ -97,25 +98,26 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
      * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
      * ensure both simulated and real ranges are finite values. 
      */
-    float media = 0;
-    for(size_t i=0; i<simulated_scans.size(); i++){
-	float delta = 0;
-	for(size_t j=0; simulated_scans[i].ranges.size();j++)
-	   if(simulated_scans[i].ranges[j] >= real_scan.range_min &&
-	      simulated_scans[i].ranges[j] <= real_scan.range_max &&
-              real_scan.ranges[j*downsampling] >= real_scan.range_min &&
-	      real_scan.ranges[j*downsampling] <= real_scan.range_max){
-               delta += fabs(real_scan.ranges[j*downsampling] - simulated_scans[i].ranges[j]);
-	      }
-	similarities[i] = exp( (-delta*delta) /sigma2);
-	media += similarities[i];
-	}
-
-    for(size_t k=0; k<similarities.size(); k++){
-	 similarities[k] /= media;
-	}
+    
     /*
      */
+    for (size_t i=0; i < simulated_scans.size(); i++)
+    {
+        float delta=0;
+        for(size_t j=0; j< simulated_scans[i].ranges.size(); j++)
+            if(real_scan.ranges[j*downsampling] < real_scan.range_max && simulated_scans[i].ranges[j] < real_scan.range_max)
+                delta += fabs(simulated_scans[i].ranges[j]- real_scan.ranges[j*downsampling]);
+            else
+                delta += real_scan.range_max;
+     	delta /= simulated_scans[i].ranges.size();
+     	similarities[i] = exp(-delta*delta/sigma2);
+    }
+    double sum=0;
+    for(int i=0; i < similarities.size(); i++)
+        sum += similarities[i];
+    for(int i=0; i < similarities.size(); i++)
+        similarities[i] /= sum;
+
     return similarities;
 }
 
@@ -130,15 +132,15 @@ int random_choice(std::vector<float>& probabilities)
      * Return the chosen integer. 
      */
     float x = rnd.uniformReal(0,1);
-    for(int i = 0; i <probabilities.size(); i++){
-	 if(x < probabilities[i]){
-	     return x;
-	   }
-	 else{
+    for(int i = 0; i < probabilities.size(); i++)
+    {
+        if(x < probabilities[i])
+            return i;
+        else
             x -= probabilities[i];
-	   }
-	}
-    return -1; //No deberia llegar aqui
+    }    
+    
+    return -1;
 }
 
 std::vector<geometry_msgs::Pose2D> resample_particles(std::vector<geometry_msgs::Pose2D>& particles,
@@ -153,15 +155,17 @@ std::vector<geometry_msgs::Pose2D> resample_particles(std::vector<geometry_msgs:
      * Use the random_choice function to pick a particle with the correct probability.
      * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
      */
-    for(int i; i<particles.size(); i++){
-	int x = random_choice(probabilities);
-	resampled_particles[i] = particles[x];
-	resampled_particles[i].x += rnd.gaussian(0,sigma2);
-	resampled_particles[i].y += rnd.gaussian(0,sigma2);
-	resampled_particles[i].theta+=rnd.gaussian(0,sigma2);
-	}
+    
     /*
      */
+    for(size_t i = 0; i < particles.size(); i++)
+    {
+        int idx = random_choice(probabilities);
+        resampled_particles[i] = particles[idx];
+        resampled_particles[i].x += rnd.gaussian(0,sigma2);
+        resampled_particles[i].y += rnd.gaussian(0,sigma2);
+        resampled_particles[i].theta += rnd.gaussian(0,sigma2);
+    }
     return resampled_particles;
 }
 
@@ -274,7 +278,7 @@ int main(int argc, char** argv)
     float sigma2_sensor;
     float sigma2_movement;
     float sigma2_resampling;
-    ros::param::param<int>  ("~N", N_particles, 500);
+    ros::param::param<int>  ("~N", N_particles, 100);
     ros::param::param<float>("~minX", init_min_x, 1.0);
     ros::param::param<float>("~minY", init_min_y, -2.0);
     ros::param::param<float>("~minA", init_min_a, -3.1);
