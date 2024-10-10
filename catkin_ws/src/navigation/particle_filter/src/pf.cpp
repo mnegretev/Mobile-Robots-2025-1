@@ -32,6 +32,12 @@ std::vector<geometry_msgs::Pose2D> get_initial_distribution(int N, float min_x, 
      * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
      * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
      */
+     for (size_t i = 0; i < N; i++)
+     {
+      particles[i].x     = rnd.uniformReal(min_x,max_x);
+      particles[i].y     = rnd.uniformReal(min_y,max_y) ;
+      particles[i].theta = rnd.uniformReal(min_a,max_a);
+      }
     return particles;
 }
 
@@ -47,7 +53,26 @@ void move_particles(std::vector<geometry_msgs::Pose2D>& particles, float delta_x
      * Add gaussian noise to each new position. Use sigma2 as variance.
      * You can use the function rnd.gaussian(mean, variance)
      */
+     for (auto& particle : particles)
+    {
+        // Extraer la orientación actual de la partícula
+        float theta_k = particle.theta;
 
+        // Calcular el nuevo desplazamiento aplicando la rotación sobre el eje Z (rotación en 2D)
+        float new_x = particle.x + delta_x * cos(theta_k) - delta_y * sin(theta_k);
+        float new_y = particle.y + delta_x * sin(theta_k) + delta_y * cos(theta_k);
+        float new_theta = particle.theta + delta_t;
+
+        // Añadir ruido gaussiano (media = 0, varianza = sigma2) a las nuevas posiciones y orientación
+        new_x += rnd.gaussian(0.0, sigma2);
+        new_y += rnd.gaussian(0.0, sigma2);
+        new_theta += rnd.gaussian(0.0, sigma2);
+
+        // Actualizar la posición y orientación de la partícula
+        particle.x = new_x;
+        particle.y = new_y;
+        particle.theta = new_theta;
+       }
 }
 
 std::vector<sensor_msgs::LaserScan> simulate_particle_scans(std::vector<geometry_msgs::Pose2D>& particles,
@@ -90,6 +115,19 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
     
     /*
      */
+     float sum = 0;
+     for (size_t i=0; i < simulated_scans.size(); i++)
+     {
+       float delta = 0;
+       for(size_t j =0; j < simulated_scans[i].ranges.size(); j++)
+           if(simulated_scans[i].ranges[j] >= real_scan.range_min &&
+              simulated_scans[i].ranges[j] <= real_scan.range_max &&
+              real_scan.ranges[j*downsampling] >= real_scan.range_min &&
+              real_scan.ranges[j*downsampling] <= real_scan.range_max)
+               delta + fabs(real_scan.ranges[j*downsampling] - simulated_scans[i].ranges[j]);
+       similarities[i] = exp(-delta*delta/sigma2);
+       sum += similarities[i];
+       }
     return similarities;
 }
 
@@ -103,7 +141,14 @@ int random_choice(std::vector<float>& probabilities)
      * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
      * Return the chosen integer. 
      */
-    
+     float x = rnd.uniformReal (0,1);
+    int idx = 0;
+    while(idx < probabilities.size())
+        if (x < probabilities[idx])
+            return idx;
+        else 
+            x -= probabilities[idx];
+        idx ++;
     
     return -1;
 }
@@ -120,7 +165,14 @@ std::vector<geometry_msgs::Pose2D> resample_particles(std::vector<geometry_msgs:
      * Use the random_choice function to pick a particle with the correct probability.
      * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
      */
-    
+    for(size_t i = 0; i < particles.size(); i++)
+    {
+        int idx = random_choice(probabilities);
+        resampled_particles[i] = particles[idx];
+        resampled_particles[i]. x= rnd.gaussian(0,sigma2);
+        resampled_particles[i]. y= rnd.gaussian(0,sigma2);
+        resampled_particles[i]. theta= rnd.gaussian(0,sigma2);
+    }
     /*
      */
     return resampled_particles;
@@ -290,7 +342,8 @@ int main(int argc, char** argv)
              */
             move_particles(particles, delta_pose.x, delta_pose.y, delta_pose.theta, sigma2_movement);
             simulated_scans = simulate_particle_scans(particles, static_map, sensor_specs);
-            similarities    = calculate_particle_similarities(simulated_scans, real_scan, laser_downsampling, sigma2_sensor);
+            similarities    = calculate_particle_similarities(simulated_scans, real_scan,   
+            laser_downsampling, sigma2_sensor); 
             particles       = resample_particles(particles, similarities, sigma2_resampling);
 
             /*
