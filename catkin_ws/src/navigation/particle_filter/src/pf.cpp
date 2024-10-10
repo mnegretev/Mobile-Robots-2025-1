@@ -19,7 +19,7 @@
 #define DISTANCE_THRESHOLD  0.2
 #define ANGLE_THRESHOLD     0.2
 
-#define NOMBRE "APELLIDO_PATERNO_APELLIDO_MATERNO"
+#define NOMBRE "Frías_Hernández"
 
 std::vector<geometry_msgs::Pose2D> get_initial_distribution(int N, float min_x, float max_x, float min_y, float max_y,
                                                              float min_a, float max_a)
@@ -32,10 +32,17 @@ std::vector<geometry_msgs::Pose2D> get_initial_distribution(int N, float min_x, 
      * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
      * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
      */
+	for (int i = 0; i < N; ++i) 
+	{
+		    particles[i].x = rnd.uniformReal(min_x, max_x);
+		    particles[i].y = rnd.uniformReal(min_y, max_y);
+		    particles[i].theta = rnd.uniformReal(min_a, max_a); 
+	}
     return particles;
 }
 
-void move_particles(std::vector<geometry_msgs::Pose2D>& particles, float delta_x, float delta_y, float delta_t, float sigma2)
+
+void move_particles(std::vector<geometry_msgs::Pose2D>& particles, float delta_x, float delta_y, float delta_t, float sigma2, int& cont_iteraciones)
 {
     random_numbers::RandomNumberGenerator rnd;
     /*
@@ -47,11 +54,18 @@ void move_particles(std::vector<geometry_msgs::Pose2D>& particles, float delta_x
      * Add gaussian noise to each new position. Use sigma2 as variance.
      * You can use the function rnd.gaussian(mean, variance)
      */
-
+    for(size_t i=0; i< particles.size();i++)
+    {
+        float t = particles[i].theta;
+        particles[i].x += delta_x*cos(t) + rnd.gaussian(0,sigma2);
+        particles[i].y += delta_y*sin(t) + rnd.gaussian(0,sigma2);
+        particles[i].theta += delta_t + rnd.gaussian(0,sigma2);
+    }
+    cont_iteraciones ++;
+    std::cout << "Iteraciones: " << cont_iteraciones <<std::endl;
 }
 
-std::vector<sensor_msgs::LaserScan> simulate_particle_scans(std::vector<geometry_msgs::Pose2D>& particles,
-                                                             nav_msgs::OccupancyGrid& map, sensor_msgs::LaserScan& sensor_specs)
+std::vector<sensor_msgs::LaserScan> simulate_particle_scans(std::vector<geometry_msgs::Pose2D>& particles, nav_msgs::OccupancyGrid& map, sensor_msgs::LaserScan& sensor_specs)
 {
     /*
      * TODO:
@@ -69,43 +83,62 @@ std::vector<sensor_msgs::LaserScan> simulate_particle_scans(std::vector<geometry
     }
     return simulated_scans;
 }
-
-std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::LaserScan>& simulated_scans,
-                                                   sensor_msgs::LaserScan& real_scan, int downsampling, float sigma2)
+/*
+PUNTO 4
+*/
+std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::LaserScan>& simulated_scans, sensor_msgs::LaserScan& real_scan, int downsampling, float sigma2)
 {
-    std::vector<float> similarities;
-    similarities.resize(simulated_scans.size());
-    /*
-     * TODO:
-     * For each particle, calculate the similarity between its simulated scan and the real scan.
-     * Normalize all similarities (the sum of all values must always be 1.0)
-     * Store results in 'similarities'.
-     * IMPORTANT NOTE 1. The real sensor scans are DOWNSAMPLED. That is, only 1 out of 'downsampling' scans is considered, i.e.,
-     * For example, if downsampling=10, then, if real sensor has 500 ranges, simulated scans will only have 50 ranges
-     * When comparing readings, for each reading in the simulated scan, you should skip 'downsampling' readings
-     * in the real sensor.
-     * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
-     * ensure both simulated and real ranges are finite values. 
-     */
-    
-    /*
-     */
+    std::vector<float> similarities(simulated_scans.size(), 0.0f);
+    float sum_of_similarities = 0.0f;
+
+    for (size_t i = 0; i < simulated_scans.size(); ++i) {
+        float delta_sum = 0.0f;
+        int valid_readings = 0;
+
+        for (size_t j = 0; j < simulated_scans[i].ranges.size(); ++j) {
+            float simulated_range = simulated_scans[i].ranges[j];
+            float real_range = real_scan.ranges[j * downsampling];
+
+            if (std::isfinite(simulated_range) && std::isfinite(real_range)) {
+                delta_sum += std::abs(simulated_range - real_range);
+                
+                valid_readings++;
+            }
+        }
+
+        if (valid_readings > 0) {
+            float delta_mean = delta_sum / valid_readings;
+            similarities[i] = std::exp(-std::pow(delta_mean, 2) / sigma2);
+            sum_of_similarities += similarities[i];
+        }
+    }
+
+    // Normalizar las similitudes para que la suma sea 1.0
+    if (sum_of_similarities > 0.0f) {
+        for (float& similarity : similarities) {
+            similarity /= sum_of_similarities;
+        }
+    }
+
     return similarities;
 }
 
 int random_choice(std::vector<float>& probabilities)
 {
     random_numbers::RandomNumberGenerator rnd;
-    /*
-     * TODO:
-     *
-     * Write an algorithm to choice an integer in the range [0, N-1], with N, the length of 'probabilities'.
-     * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
-     * Return the chosen integer. 
-     */
-    
-    
-    return -1;
+    float random_value = rnd.uniformReal(0, 1); // Genera un número aleatorio entre 0 y 1.
+    float cumulative_probability = 0.0;
+
+    for (size_t i = 0; i < probabilities.size(); ++i) {
+        cumulative_probability += probabilities[i];
+        if (random_value < cumulative_probability) {
+            return i; // Retorna el índice seleccionado.
+        }
+    }
+
+    // En teoría, nunca deberíamos llegar a este punto, pero por precaución retornamos el último índice.
+    // O podríamos manejar un error si es adecuado para el uso del código.
+    return probabilities.size() - 1;
 }
 
 std::vector<geometry_msgs::Pose2D> resample_particles(std::vector<geometry_msgs::Pose2D>& particles,
@@ -113,16 +146,21 @@ std::vector<geometry_msgs::Pose2D> resample_particles(std::vector<geometry_msgs:
 {
     random_numbers::RandomNumberGenerator rnd;
     std::vector<geometry_msgs::Pose2D> resampled_particles(particles.size());
-    /*
-     * TODO:
-     * Sample, with replacement, N particles from the set 'particles'.
-     * The probability of the i-th particle to be resampled is given by probabilities[i].
-     * Use the random_choice function to pick a particle with the correct probability.
-     * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
-     */
-    
-    /*
-     */
+
+    for (size_t i = 0; i < particles.size(); ++i) {
+        // Usar random_choice para seleccionar una partícula basada en la distribución de probabilidad
+        int chosen_index = random_choice(probabilities);
+        geometry_msgs::Pose2D chosen_particle = particles[chosen_index];
+
+        // Añadir ruido gaussiano a la partícula elegida
+        chosen_particle.x += rnd.gaussian(0.0, sigma2);
+        chosen_particle.y += rnd.gaussian(0.0, sigma2);
+        chosen_particle.theta += rnd.gaussian(0.0, sigma2);
+
+        // Guardar la partícula remuestreada
+        resampled_particles[i] = chosen_particle;
+    }
+
     return resampled_particles;
 }
 
@@ -232,10 +270,11 @@ int main(int argc, char** argv)
     float init_max_y;
     float init_max_a;
     int laser_downsampling;
+    int cont_iteraciones = 0;
     float sigma2_sensor;
     float sigma2_movement;
     float sigma2_resampling;
-    ros::param::param<int>  ("~N", N_particles, 100);
+    ros::param::param<int>  ("~N", N_particles, 1000);
     ros::param::param<float>("~minX", init_min_x, 1.0);
     ros::param::param<float>("~minY", init_min_y, -2.0);
     ros::param::param<float>("~minA", init_min_a, -3.1);
@@ -255,7 +294,7 @@ int main(int argc, char** argv)
     std::cout << "max_x: " << init_max_x << "   max_y: " << init_max_y << "   max_a: " << init_max_a << std::endl;
     
     nav_msgs::GetMap srv_get_map;
-    nav_msgs::OccupancyGrid static_map;                   //A static map
+    nav_msgs::OccupancyGrid static_map;                
     ros::service::waitForService("/static_map", ros::Duration(20));
     ros::service::call("/static_map", srv_get_map);
     static_map = srv_get_map.response.map;
@@ -269,9 +308,9 @@ int main(int argc, char** argv)
     geometry_msgs::Pose2D delta_pose;
     check_displacement(delta_pose);
 
-    std::vector<geometry_msgs::Pose2D> particles;        //A set of N particles
-    std::vector<sensor_msgs::LaserScan> simulated_scans; //A set of simulated laser readings, one scan per particle
-    std::vector<float> similarities;                     //A set of similarities for each particle
+    std::vector<geometry_msgs::Pose2D> particles;        
+    std::vector<sensor_msgs::LaserScan> simulated_scans; 
+    std::vector<float> similarities;                     
     
     particles = get_initial_distribution(N_particles, init_min_x, init_max_x, init_min_y, init_max_y, init_min_a, init_max_a);
     tf::Transform map_to_odom = calculate_and_publish_estimated_pose(particles, &pub_particles);
@@ -282,19 +321,20 @@ int main(int argc, char** argv)
             std::cout << "Displacement detected. Updating pose estimation..." << std::endl;
             real_scan = *ros::topic::waitForMessage<sensor_msgs::LaserScan>("/hardware/scan");
             /*
-             * TODO: Review the functions to:
+             * TODO:
              * Move all particles a displacement given by delta_pose (Pose2D message) by calling the move_particles function.
              * Get the set of simulated scans for each particles. Use the simulate_particle_scans function.
              * Get the set of similarities by calling the calculate_particle_similarities function
              * Resample particles by calling the resample_particles function
              */
-            move_particles(particles, delta_pose.x, delta_pose.y, delta_pose.theta, sigma2_movement);
-            simulated_scans = simulate_particle_scans(particles, static_map, sensor_specs);
-            similarities    = calculate_particle_similarities(simulated_scans, real_scan, laser_downsampling, sigma2_sensor);
-            particles       = resample_particles(particles, similarities, sigma2_resampling);
-
+    
             /*
              */
+            move_particles(particles, delta_pose.x, delta_pose.y, delta_pose.theta, sigma2_movement, cont_iteraciones);
+	    simulated_scans = simulate_particle_scans(particles, static_map, sensor_specs);
+            similarities = calculate_particle_similarities(simulated_scans, real_scan, laser_downsampling, sigma2_sensor);
+            particles = resample_particles(particles, similarities, sigma2_resampling);
+
             map_to_odom = calculate_and_publish_estimated_pose(particles, &pub_particles);
         }
         broadcaster.sendTransform(tf::StampedTransform(map_to_odom, ros::Time::now(), "map", "odom"));
@@ -303,3 +343,4 @@ int main(int argc, char** argv)
     }
     return 0;
 }
+
