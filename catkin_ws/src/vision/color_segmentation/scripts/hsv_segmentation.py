@@ -20,10 +20,10 @@ from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import PointStamped, Point
 from vision_msgs.srv import RecognizeObject, RecognizeObjectResponse
 
-NAME = "FULL_NAME"
+NAME = "Larios Avila Armando"
 
 def segment_by_color(img_bgr, points, obj_name):
-    global maskl, test1, test223
+    global mask, test1, test2
     img_x, img_y, x,y,z = 0,0,0,0,0
     #
     # TODO:
@@ -42,20 +42,20 @@ def segment_by_color(img_bgr, points, obj_name):
     #   the pixel in the center of the image.
     #
 
-    upperLim = (35, 255, 255)
-    lowerLim = (25, 50, 50)
+    lowerLim = (25, 50, 50) if obj_name == "pringles" else (15,150,150)
+    upperLim = (35, 255, 255) if obj_name == "pringles" else (20,255,200)
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lowerLim, upperLim)
     test1 = mask
     kernelSize = 2
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, 2*kernelSize+1, 2*kernelSize+1)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*kernelSize+1, 2*kernelSize+1))
     eroded = cv2.erode(mask, kernel)
     dilated = cv2.dilate(eroded, kernel)
     contours, hierarchy = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    color_mask = cv2.cvtColor(dilated, cv2.GRAY2BGR)
+    color_mask = cv2.cvtColor(dilated, cv2.COLOR_GRAY2BGR)
     print(contours)
     for i in range(len(contours)):
-        cv2.drawContours(color_mask, contours, i, (0, 255, 0), -1)
+        cv2.drawContours(color_mask, contours, i, (100*i, 255-100*i, 0), -1)
     test2 = color_mask
     idx = cv2.findNonZero(mask)
     mean = numpy.zeros(3)
@@ -103,6 +103,9 @@ def main():
     rospy.Service("/vision/obj_reco/detect_and_recognize_object", RecognizeObject, callback_find_object)
     pub_point = rospy.Publisher('/detected_object', PointStamped, queue_size=10)
     img_bgr = numpy.zeros((480, 640, 3), numpy.uint8)
+    test1 = numpy.zeros((480, 640, 3), numpy.uint8)
+    test2 = numpy.zeros((480, 640, 3), numpy.uint8)
+    mask = numpy.zeros((480, 640, 3), numpy.uint8)
     loop = rospy.Rate(10)
     while not rospy.is_shutdown():
         cv2.imshow("Color Segmentation", img_bgr)
