@@ -286,7 +286,7 @@ int main(int argc, char** argv)
     ros::param::param<float>("~maxX", init_max_x, 10.5);
     ros::param::param<float>("~maxY", init_max_y, 11.0);
     ros::param::param<float>("~maxA", init_max_a, 3.1);
-    ros::param::param<int>  ("~ds", laser_downsampling, 10);
+    ros::param::param<int>  ("~ds", laser_downsampling, 20);
     ros::param::param<float>("~s2s", sigma2_sensor, 0.1);
     ros::param::param<float>("~s2m", sigma2_movement, 0.1);
     ros::param::param<float>("~s2r", sigma2_resampling, 0.1);
