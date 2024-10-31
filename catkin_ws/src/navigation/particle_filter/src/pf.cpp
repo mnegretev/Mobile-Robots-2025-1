@@ -52,12 +52,11 @@ void move_particles(std::vector<geometry_msgs::Pose2D>& particles, float delta_x
      * Add gaussian noise to each new position. Use sigma2 as variance.
      * You can use the function rnd.gaussian(mean, variance)
      */
-    
-    for(size_t i=0; i< particles.size(); i++)
-    {
-	 particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0,sigma2);
-         particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0,sigma2);
-         particles[i].theta += delta_t + rnd.gaussian(0,sigma2);
+ 
+    for(size_t i=0; i< particles.size(); i++){
+	particles[i].x += delta_x * cos(particles[i].theta) - delta_y * sin(particles[i].theta) + rnd.gaussian(0, sigma2);
+	particles[i].y += delta_x * sin(particles[i].theta) + delta_y * cos(particles[i].theta) + rnd.gaussian(0, sigma2);
+	particles[i].theta += delta_t + rnd.gaussian(0, sigma2);
     }
 }
 
@@ -101,22 +100,25 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
     
     /*
      */
-    for (size_t i=0; i < simulated_scans.size(); i++)
-    {
-        float delta=0;
-        for(size_t j=0; j< simulated_scans[i].ranges.size(); j++)
-            if(real_scan.ranges[j*downsampling] < real_scan.range_max && simulated_scans[i].ranges[j] < real_scan.range_max)
-                delta += fabs(simulated_scans[i].ranges[j]- real_scan.ranges[j*downsampling]);
-            else
-                delta += real_scan.range_max;
-     	delta /= simulated_scans[i].ranges.size();
-     	similarities[i] = exp(-delta*delta/sigma2);
+    float sum=0;
+    for(size_t i=0; i<simulated_scans.size(); i++){
+    	float delta=0;
+	for(size_t j=0; j< simulated_scans[i].ranges.size(); j++){
+		if(simulated_scans[i].ranges[j] >= real_scan.range_min &&
+		   simulated_scans[i].ranges[j] <= real_scan.range_max &&
+		   real_scan.ranges[j*downsampling] >= real_scan.range_min &&
+		   real_scan.ranges[j*downsampling] <= real_scan.range_max){
+			delta += fabs(real_scan.ranges[j*downsampling] - simulated_scans[i].ranges[j]);
+		}
+	}
+	delta /= simulated_scans[i].ranges.size();
+	similarities[i] = exp(-delta*delta/sigma2);
+	sum += similarities[i];
     }
-    double sum=0;
-    for(int i=0; i < similarities.size(); i++)
-        sum += similarities[i];
-    for(int i=0; i < similarities.size(); i++)
-        similarities[i] /= sum;
+
+    for(size_t i=0; i < similarities.size(); i++){
+	    similarities[i]/=sum;
+    }
 
     return similarities;
 }
@@ -132,14 +134,14 @@ int random_choice(std::vector<float>& probabilities)
      * Return the chosen integer. 
      */
     float x = rnd.uniformReal(0,1);
-    for(int i = 0; i < probabilities.size(); i++)
-    {
-        if(x < probabilities[i])
-            return i;
-        else
-            x -= probabilities[i];
-    }    
-    
+    int idx = 0;
+    while (idx < probabilities.size()){
+	    if(x < probabilities[idx])
+		    return idx;
+	    else
+		    x -= probabilities[idx];
+	    idx ++;
+    }
     return -1;
 }
 
@@ -158,8 +160,7 @@ std::vector<geometry_msgs::Pose2D> resample_particles(std::vector<geometry_msgs:
     
     /*
      */
-    for(size_t i=0; i< particles.size(); i++)
-    {
+    for(size_t i=0; i< particles.size(); i++){
 	    int idx = random_choice(probabilities);
 	    resampled_particles[i] = particles[idx];
 	    resampled_particles[i].x += rnd.gaussian(0,sigma2);
