@@ -20,7 +20,7 @@ from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import PointStamped, Point
 from vision_msgs.srv import RecognizeObject, RecognizeObjectResponse
 
-NAME = "ISRAEL RAMIREZ SAMPERIO"
+NAME = " ISRAEL RAMIREZ SAMPERIO "
 
 def segment_by_color(img_bgr, points, obj_name):
     img_x, img_y, x,y,z = 0,0,0,0,0
