@@ -20,7 +20,7 @@ from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import PointStamped, Point
 from vision_msgs.srv import RecognizeObject, RecognizeObjectResponse
 
-NAME = "FULL_NAME"
+NAME = "TREJO CHAVEZ OSCAR"
 
 def segment_by_color(img_bgr, points, obj_name):
     img_x, img_y, x,y,z = 0,0,0,0,0
@@ -39,9 +39,38 @@ def segment_by_color(img_bgr, points, obj_name):
     #   using the point cloud 'points'. Use numpy array notation to process the point cloud data.
     #   Example: 'points[240,320][1]' gets the 'y' value of the point corresponding to
     #   the pixel in the center of the image.
-    #
-    
-    return [img_x, img_y, x,y,z]
+    upperLim = (35, 255, 255) if obj_name == "pringles" else (18,255,200)
+    lowerLim = (25, 50, 50) if obj_name == "pringles" else (15,150,150)
+    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lowerLim, upperLim)
+    test1 = mask
+    kernelSize = 2
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*kernelSize+1, 2*kernelSize+1))
+    eroded = cv2.erode(mask, kernel)
+    dilated = cv2.dilate(eroded, kernel)
+    contours, hierarchy = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    color_mask = cv2.cvtColor(dilated, cv2.COLOR_GRAY2BGR)
+    print(contours)
+    for i in range(len(contours)):
+        cv2.drawContours(color_mask, contours, i, (100*i, 255-100*i, 0), -1)
+    test2 = color_mask
+    idx = cv2.findNonZero(mask)
+    mean = numpy.zeros(3)
+    counter = 0
+    for [[c,r]] in idx:
+        p = points[r,c]
+        p = numpy.array([p[0], p[1], p[2]])
+        if(numpy.isnan(numpy.min(p))):
+            continue
+        mean += p
+        counter += 1
+    mean /= counter
+    img_center = cv2.mean(idx)
+    print("XYZ: ", mean)
+    print("IMG: ", img_center)
+
+    return [img_center[0], img_center[1], mean[0], mean[1], mean[2]]
+    #return [img_x, img_y, x,y,z]
 
 def callback_find_object(req):
     global pub_point, img_bgr
