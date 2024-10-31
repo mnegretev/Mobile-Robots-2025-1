@@ -41,12 +41,18 @@ def segment_by_color(img_bgr, points, obj_name):
     #   the pixel in the center of the image.
     #
 
-    upperLim = (35, 255, 255) if obj_name == "pringles" else (20,255,200)
-    lowerLim = (25, 50, 50) if obj_name == "pringles" else (20,150,150)
+    if obj_name == "pringles":
+        upperLim = (35, 255, 255)
+        lowerLim = (25, 50, 50)
+    elif obj_name == "drink":
+        upperLim = (18, 255, 200)
+        lowerLim = (15, 150, 150)
+    else:
+        print("OBJECT NOT FOUND")
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lowerLim, upperLim)
     test1 = mask
-    kernelSize = 2
+    kernelSize = 5
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*kernelSize+1, 2*kernelSize+1))
     eroded = cv2.erode(mask, kernel)
     dilated = cv2.dilate(eroded, kernel)
@@ -82,7 +88,7 @@ def callback_find_object(req):
     rgb_arr.dtype = numpy.uint32
     r = numpy.asarray(((rgb_arr >> 16) & 255), dtype='uint8')
     g = numpy.asarray(((rgb_arr >>  8) & 255), dtype='uint8')
-    b = numpy.asarray(((rgb_arr >>   ) & 255), dtype='uint8')
+    b = numpy.asarray(((rgb_arr      ) & 255), dtype='uint8')
     img_bgr = cv2.merge((b,g,r))
     [r, c, x, y, z] = segment_by_color(img_bgr, arr, req.name)
     resp = RecognizeObjectResponse()
