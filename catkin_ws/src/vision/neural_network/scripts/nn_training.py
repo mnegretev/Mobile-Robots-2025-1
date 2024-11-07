@@ -14,7 +14,7 @@ import numpy
 import rospy
 import rospkg
 
-NAME = "FULL_NAME"
+NAME = "JESUS HONORATO VALVERDE FLORES"
 
 class NeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -29,7 +29,7 @@ class NeuralNetwork(object):
         #
         self.num_layers  = len(layers)
         self.layer_sizes = layers
-        self.biases =[numpy.random.randn(y,1) for y in layers[1:]] if biases == None else biases
+        self.biases =[numpy.random.randn(y,1) for y in layers[1:784,500,100,50,10]] if biases == None else biases
         self.weights=[numpy.random.randn(y,x) for x,y in zip(layers[:-1],layers[1:])] if weights==None else weights
         
     def feedforward(self, x):
