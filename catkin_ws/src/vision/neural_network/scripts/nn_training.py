@@ -29,7 +29,7 @@ class NeuralNetwork(object):
         #
         self.num_layers  = len(layers)
         self.layer_sizes = layers
-        self.biases =[numpy.random.randn(y,1) for y in layers[1:784,500,100,50,10]] if biases == None else biases
+        self.biases =[numpy.random.randn(y,1) for y in layers[1:]] if biases == None else biases
         self.weights=[numpy.random.randn(y,x) for x,y in zip(layers[:-1],layers[1:])] if weights==None else weights
         
     def feedforward(self, x):
@@ -52,6 +52,7 @@ class NeuralNetwork(object):
          for i in range(len(self.biases)): #pendiente devolver solo la capa de salida, cual es la capa de salida?
             z = numpy.dot(self.weights[i], x) + self.biases[i]
             x = 1.0 / (1.0 + numpy.exp(-z))
+            y.append(x)
 
         return y
 
@@ -81,7 +82,7 @@ class NeuralNetwork(object):
         nabla_b = delta
         nabla_w = delta*yLpT
         
-        for l in : #pendiente, i que es lo que va a recorrer? 
+        for l in range (L-1): #pendiente, i que es lo que va a recorrer? 
             delta = (WT * delta)*yl*(1-yl)
             nabla_b[-l] = delta
             nabla_w[-l] = delta*ylpT
@@ -167,7 +168,7 @@ def main():
         nn = NeuralNetwork(layers, weights=saved_data['w'], biases=saved_data['b'])
         print("Loading data from previously trained model with layers " + str(layers))
     except:
-        nn = NeuralNetwork([784,30,10])
+        nn = NeuralNetwork([784,50,30,10])
         pass
     
     nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
