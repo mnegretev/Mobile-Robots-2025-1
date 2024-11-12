@@ -13,6 +13,7 @@ import random
 import numpy
 import rospy
 import rospkg
+import csv
 
 NAME = "Gonzalez Aguilar Julio CEsar"
 
@@ -177,56 +178,67 @@ def main():
         nn = NeuralNetwork([784,30,10])
         pass
     #calcular las 64 pruebas
-    for learning_rate in [0.5,1.0,3.0,10.0]: 
-        for epochs in [3,10,50,100]:
-            for batch_size in [5,10,30,100]:
-                print("--------------------------------------")
-                print("Tasa de aprendizaje ="+str(learning_rate))
-                print("Epocas ="+str(epochs))
-                print("Tamaño de lote ="+str(batch_size))
-                print("--------------------------------------")
-                #Calcular tiempo 
-                start_time = rospy.Time.now()
-                nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
-                end_time = rospy.Time.now()
-                tiempo=str(1000*(end_time-start_time).to_sec())
-                print("Tiempo de entrenamiento:"+tiempo+" ms")
-                tiemposEntrenamiento.append(tiempo)
-                pruebas+=1
-                hits=0
-                nohits=0
-                #Realizar 100 iteraciones
-                for i in range (100): #while cmd != 27 and not rospy.is_shutdown():
-                    img,label = testing_dataset[numpy.random.randint(0, 4999)]
-                    y = nn.feedforward(img).transpose()
-                    print("\nPerceptron output: " + str(y))
-                    print("Expected output  : "   + str(label.transpose()))
-                    print("Recognized digit : "   + str(numpy.argmax(y)))
-                    cv2.imshow("Digit",numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-                    expected = numpy.argmax(label.transpose())
-                    recognized = numpy.argmax(y)
-                    if expected == recognized:
-                        hits +=1
-                    elif (expected != recognized):
-                        nohits+=1
-                print("Pruebas exitosas: " + str(hits))
-                exitos.append(hits)
-                print("Pruebas no exitosas: " + str(nohits))
-                fracasos.append(nohits)
-                print(f"Total de iteraciones = {pruebas}")
-                print("--------------------------------------")
-                #print("\nPress key to test network or ESC to exit...")
-                #cmd = cv2.waitKey(0)
-                #numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-                #cmd = cv2.waitKey(0)
-    
-    #numpy.savez(dataset_folder + "network",w=nn.weights, b=nn.biases)
-    print(f"Tiempos de entrenamiento : {tiemposEntrenamiento}")
-    print(f"Exitos : {exitos}")
-    print(f"FRacasos: {fracasos}")
-    
+    with open("/home/jules/resultados.csv", mode="w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Tasa de aprendizaje", "Épocas", "Tamaño de lote", "Tiempo de entrenamiento (ms)", "Tasa de acierto (%)", "Tasa de error (%)"])
+        for learning_rate in [0.5, 1.0, 3.0, 10.0]:
+            for epochs in [3, 10, 50, 100]:
+                for batch_size in [5, 10, 30, 100]:
+                    print("--------------------------------------")
+                    print("Tasa de aprendizaje = " + str(learning_rate))
+                    print("Epocas = " + str(epochs))
+                    print("Tamaño de lote = " + str(batch_size))
+                    print("--------------------------------------")
+                    
+                    # Calcular tiempo
+                    start_time = rospy.Time.now()
+                    nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
+                    end_time = rospy.Time.now()
+                    tiempo = str(1000 * (end_time - start_time).to_sec())
+                    print("Tiempo de entrenamiento: " + tiempo + " ms")
+                    
+                    tiemposEntrenamiento.append(tiempo)
+                    pruebas += 1
+                    hits = 0
+                    nohits = 0
+                    
+                    # Realizar 100 iteraciones
+                    for i in range(100):  # while cmd != 27 and not rospy.is_shutdown():
+                        img, label = testing_dataset[numpy.random.randint(0, 4999)]
+                        y = nn.feedforward(img).transpose()
+                        print("\nPerceptron output: " + str(y))
+                        print("Expected output  : " + str(label.transpose()))
+                        print("Recognized digit : " + str(numpy.argmax(y)))
+                        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28, 28, 1)))
+                        
+                        expected = numpy.argmax(label.transpose())
+                        recognized = numpy.argmax(y)
+                        
+                        if expected == recognized:
+                            hits += 1
+                        elif expected != recognized:
+                            nohits += 1
+                    
+                    print("Pruebas exitosas: " + str(hits))
+                    exitos.append(hits)
+                    print("Pruebas no exitosas: " + str(nohits))
+                    fracasos.append(nohits)
+                    print(f"Total de iteraciones = {pruebas}")
+                    print("--------------------------------------")
+                    # print("\nPress key to test network or ESC to exit...")
+                    # cmd = cv2.waitKey(0)
+                    # numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
+                    # cmd = cv2.waitKey(0)
+                    tasa_acierto="%"+str((hits/100)*100)
+                    tasa_error="%"+str((nohits/100)*100)
+                    writer.writerow([learning_rate, epochs, batch_size, tiempo, tasa_acierto, tasa_error])
+        
+        # numpy.savez(dataset_folder + "network", w=nn.weights, b=nn.biases)
+        print(f"Tiempos de entrenamiento : {tiemposEntrenamiento}")
+        print(f"Exitos : {exitos}")
+        print(f"Fracasos: {fracasos}")
+        
 
-    
 
 
 if __name__ == '__main__':
