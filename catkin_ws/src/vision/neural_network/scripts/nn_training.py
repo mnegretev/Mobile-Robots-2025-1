@@ -13,8 +13,13 @@ import random
 import numpy
 import rospy
 import rospkg
+import csv
+import os
+import getpass
+from sklearn.metrics import confusion_matrix
 
-NAME = "FULL_NAME"
+
+NAME = "Bryan de Jesus Carmona Olivares"
 
 class NeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -49,6 +54,11 @@ class NeuralNetwork(object):
         # return a list containing the output of each layer, from input to output.
         # Include input x as the first output.
         #
+        y.append(x)
+        for i in range(len(self.biases)):
+            z = numpy.dot(self.weights[i], x) + self.biases[i]
+            x = 1.0 / (1.0 + numpy.exp(-z))  #output of the current layer is the input of the next one
+            y.append(x)
         
         return y
 
@@ -74,6 +84,13 @@ class NeuralNetwork(object):
         #     nabla_w[-l] = delta*ylpT  where ylpT is the transpose of outputs vector of layer l-1
         #
         
+        delta=(y[-1] - yt)*y[-1]*(1-y[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = delta*y[-2].T
+        for i in range (2,self.num_layers):
+            delta = numpy.dot(self.weights[-i+1].T,delta)*y[-i]*(1 - y[-i])
+            nabla_b[-i] = delta
+            nabla_w[-i] = delta*y[-i-1].T
         
         return nabla_w, nabla_b
 
@@ -137,9 +154,20 @@ def main():
     rospy.init_node("nn_training")
     rospack = rospkg.RosPack()
     dataset_folder = rospack.get_path("neural_network") + "/handwritten_digits/"
-    epochs        = 3
-    batch_size    = 10
-    learning_rate = 3.0
+    
+    # Ruta de la carpeta "RESULTADOS" en el escritorio
+    username = getpass.getuser()
+    desktop_folder = f"/home/{username}/Escritorio/"
+    if not os.path.exists(desktop_folder):
+        desktop_folder = f"/home/{username}/Desktop/"
+    
+    output_folder = os.path.join(desktop_folder, "RESULTADOS")
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Archivo CSV único para almacenar todos los resultados
+    csv_file_path = os.path.join(output_folder, "resultados_entrenamiento.csv")
+
+    cmd = 0
     
     if rospy.has_param("~epochs"):
         epochs = rospy.get_param("~epochs")
@@ -151,28 +179,188 @@ def main():
     training_dataset, testing_dataset = load_dataset(dataset_folder)
     
     try:
-        saved_data = numpy.load(dataset_folder+"network.npz",allow_pickle=True)
+        saved_data = numpy.load(dataset_folder + "network.npz", allow_pickle=True)
         layers = [saved_data['w'][0].shape[1]] + [b.shape[0] for b in saved_data['b']]
         nn = NeuralNetwork(layers, weights=saved_data['w'], biases=saved_data['b'])
         print("Loading data from previously trained model with layers " + str(layers))
     except:
-        nn = NeuralNetwork([784,30,10])
+        nn = NeuralNetwork([784, 30, 10])
         pass
     
-    nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
-    #numpy.savez(dataset_folder + "network",w=nn.weights, b=nn.biases)
+    if not os.path.exists(csv_file_path):
+        with open(csv_file_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Learning Rate", "Epochs", "Batch Size", "Training Time (ms)", "Success Rate (%)"])
+
+    # Iterar sobre todas las combinaciones de parámetros
+    for learning_rate in [0.5, 1.0, 3.0, 10.0]:
+        for epochs in [3, 10, 50, 100]:
+            for batch_size in [5, 10, 30, 100]:
+                print(f"Tasa de aprendizaje = {learning_rate}, Épocas = {epochs}, Tamaño de lote = {batch_size}")
+                
+                # Calcular tiempo de entrenamiento
+                start_time = rospy.Time.now()
+                nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
+                end_time = rospy.Time.now()
+                training_time = 1000 * (end_time - start_time).to_sec()
+
+                hits, nohits = 0, 0
+                true_labels = []  # Lista para etiquetas verdaderas
+                predicted_labels = []  # Lista para etiquetas predichas
+
+                # Realizar 100 iteraciones de prueba
+                for i in range(100):
+                    img, label = testing_dataset[numpy.random.randint(0, 4999)]
+                    y = nn.feedforward(img).transpose()
+                    
+                    expected = numpy.argmax(label.transpose())
+                    recognized = numpy.argmax(y)
+
+                    # Almacenar etiquetas para la matriz de confusión
+                    true_labels.append(expected)
+                    predicted_labels.append(recognized)
+                    
+                    if expected == recognized:
+                        hits += 1
+                    else:
+                        nohits += 1
+
+                # Calcular porcentaje de éxitos
+                success_rate = (hits / 100) * 100
+                print(f"Tiempo de entrenamiento: {training_time} ms, Porcentaje de éxitos: {success_rate}%")
+
+                # Generar matriz de confusión
+                conf_matrix = confusion_matrix(true_labels, predicted_labels)
+                print(f"Matriz de confusión para LR={learning_rate}, Epochs={epochs}, Batch Size={batch_size}:\n{conf_matrix}")
+
+                # Guardar los resultados en el archivo CSV único
+                with open(csv_file_path, mode='a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow([learning_rate, epochs, batch_size, training_time, success_rate])
+
+                # Guardar la matriz de confusión en un archivo CSV separado si se desea
+                conf_matrix_path = os.path.join(output_folder, f"conf_matrix_LR{learning_rate}_Epochs{epochs}_Batch{batch_size}.csv")
+                numpy.savetxt(conf_matrix_path, conf_matrix, delimiter=",", fmt='%d')
+                print(f"Matriz de confusión guardada en: {conf_matrix_path}")
+
+    print(f"Resultados guardados en: {csv_file_path}")
+
+# ----------------------------------------------------------------------------------------
+# def main():
+#     print("TRAINING A NEURAL NETWORK - " + NAME)
+#     rospy.init_node("nn_training")
+#     rospack = rospkg.RosPack()
+#     dataset_folder = rospack.get_path("neural_network") + "/handwritten_digits/"
     
-    print("\nPress key to test network or ESC to exit...")
-    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-    cmd = cv2.waitKey(0)
-    while cmd != 27 and not rospy.is_shutdown():
-        img,label = testing_dataset[numpy.random.randint(0, 4999)]
-        y = nn.feedforward(img).transpose()
-        print("\nPerceptron output: " + str(y))
-        print("Expected output  : "   + str(label.transpose()))
-        print("Recognized digit : "   + str(numpy.argmax(y)))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-        cmd = cv2.waitKey(0)
+#     # Obtener el nombre de usuario
+#     username = getpass.getuser()
+    
+#     # Verificar si la carpeta es "Escritorio" o "Desktop" en Ubuntu
+#     desktop_folder = f"/home/{username}/Escritorio/"
+#     if not os.path.exists(desktop_folder):  # Si "Escritorio" no existe, usa "Desktop"
+#         desktop_folder = f"/home/{username}/Desktop/"
+    
+#     # Definir la carpeta de resultados
+#     output_folder = os.path.join(desktop_folder, "RESULTADOS")
+#     os.makedirs(output_folder, exist_ok=True)  # Crear la carpeta si no existe
+
+#     # Nombre del archivo CSV único
+#     csv_file_path = os.path.join(output_folder, "resultados_entrenamiento.csv")
+    
+#     cmd = 0
+    
+#     if rospy.has_param("~epochs"):
+#         epochs = rospy.get_param("~epochs")
+#     if rospy.has_param("~batch_size"):
+#         batch_size = rospy.get_param("~batch_size")
+#     if rospy.has_param("~learning_rate"):
+#         learning_rate = rospy.get_param("~learning_rate") 
+
+#     training_dataset, testing_dataset = load_dataset(dataset_folder)
+    
+#     try:
+#         saved_data = numpy.load(dataset_folder + "network.npz", allow_pickle=True)
+#         layers = [saved_data['w'][0].shape[1]] + [b.shape[0] for b in saved_data['b']]
+#         nn = NeuralNetwork(layers, weights=saved_data['w'], biases=saved_data['b'])
+#         print("Loading data from previously trained model with layers " + str(layers))
+#     except:
+#         nn = NeuralNetwork([784, 30, 10])
+#         pass
+
+#     # Crear archivo CSV y escribir encabezado si no existe
+#     if not os.path.exists(csv_file_path):
+#         with open(csv_file_path, mode='w', newline='') as file:
+#             writer = csv.writer(file)
+#             # Encabezado
+#             writer.writerow(["Learning Rate", "Epochs", "Batch Size", "Training Time (ms)", "Success Rate (%)"])
+
+#     # Iterar sobre todas las combinaciones de parámetros y escribir en el archivo CSV único
+#     for learning_rate in [0.5, 1.0, 3.0, 10.0]:
+#         if cmd == 27 or rospy.is_shutdown():
+#             break 
+#         for epochs in [3, 10, 50, 100]:
+#             if cmd == 27 or rospy.is_shutdown():
+#                 break
+#             for batch_size in [5, 10, 30, 100]:
+#                 print("Tasa de aprendizaje = " + str(learning_rate))
+#                 print("Epocas = " + str(epochs))
+#                 print("Tamaño de lote = " + str(batch_size))
+                
+#                 # Calcular tiempo de entrenamiento
+#                 start_time = rospy.Time.now()
+#                 nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
+#                 end_time = rospy.Time.now()
+#                 training_time = 1000 * (end_time - start_time).to_sec()  # en milisegundos
+#                 print("Tiempo de entrenamiento: " + str(training_time) + " ms")
+
+#                 hits, nohits = 0, 0
+#                 cmd = cv2.waitKey(1)
+#                 if cmd == 27 or rospy.is_shutdown():
+#                     break
+
+#                 # Realizar 100 iteraciones de prueba
+#                 for i in range(100):
+#                     img, label = testing_dataset[numpy.random.randint(0, 4999)]
+#                     y = nn.feedforward(img).transpose()
+#                     expected = numpy.argmax(label.transpose())
+#                     recognized = numpy.argmax(y)
+                    
+#                     if expected == recognized:
+#                         hits += 1
+#                     else:
+#                         nohits += 1
+
+#                 # Calcular porcentaje de éxitos
+#                 success_rate = (hits / 100) * 100  # en porcentaje
+#                 print(f"Porcentaje de éxitos: {success_rate}%")
+
+#                 # Escribir los resultados en el archivo CSV único
+#                 with open(csv_file_path, mode='a', newline='') as file:
+#                     writer = csv.writer(file)
+#                     writer.writerow([learning_rate, epochs, batch_size, training_time, success_rate])
+
+#     print(f"Resultados guardados en: {csv_file_path}")
+    # ----------------------------------------------------------------------------------------
+
+
+    # ----------------------------------------------------------------------------------------
+    # C O D I G O - P R O F E S O R 
+
+    #nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
+    ###numpy.savez(dataset_folder + "network",w=nn.weights, b=nn.biases)
+    
+    #print("\nPress key to test network or ESC to exit...")
+    #numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
+    #cmd = cv2.waitKey(0)
+    #while cmd != 27 and not rospy.is_shutdown():
+    #    img,label = testing_dataset[numpy.random.randint(0, 4999)]
+    #    y = nn.feedforward(img).transpose()
+    #    print("\nPerceptron output: " + str(y))
+    #    print("Expected output  : "   + str(label.transpose()))
+    #    print("Recognized digit : "   + str(numpy.argmax(y)))
+    #    cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
+    #    cmd = cv2.waitKey(0)
+    # ----------------------------------------------------------------------------------------
     
 
 if __name__ == '__main__':
