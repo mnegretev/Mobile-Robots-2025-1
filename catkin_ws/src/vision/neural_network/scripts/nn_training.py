@@ -77,8 +77,8 @@ class NeuralNetwork(object):
         #     nabla_b[-l] = delta
         #     nabla_w[-l] = delta*ylpT  where ylpT is the transpose of outputs vector of layer l-1
         #
-        yL = (y_1 (1 - y_1) #formula obtenida de notas
-        delta=(yL-yt)*yL*(1-yL)
+        #yL = (y_1 (1 - y_1) #formula obtenida de notas, si no agrego esta función, me aparece un error al usar L : delta=(yL-yt)*yL*(1-yL) en "L"
+        L : delta=(yL-yt)*yL*(1-yL)
         nabla_b = delta
         nabla_w = delta*(yLpT)
         
