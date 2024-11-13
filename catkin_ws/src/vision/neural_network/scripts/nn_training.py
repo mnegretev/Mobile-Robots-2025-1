@@ -17,6 +17,7 @@ import csv
 import os
 import getpass
 from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
 
 
 NAME = "Bryan de Jesus Carmona Olivares"
@@ -149,6 +150,56 @@ def load_dataset(folder):
         testing_labels   += [label for j in range(len(images)//2)]
     return list(zip(training_dataset, training_labels)), list(zip(testing_dataset, testing_labels))
 
+def generar_graficas(output_folder, csv_file_path):
+    # Leer los datos del archivo CSV
+    data = {
+        "learning_rate": [],
+        "epochs": [],
+        "batch_size": [],
+        "training_time": [],
+        "success_rate": []
+    }
+
+    with open(csv_file_path, mode='r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            data["learning_rate"].append(float(row["Learning Rate"]))
+            data["epochs"].append(int(row["Epochs"]))
+            data["batch_size"].append(int(row["Batch Size"]))
+            data["training_time"].append(float(row["Training Time (ms)"]))
+            data["success_rate"].append(float(row["Success Rate (%)"]))
+
+    # Lista de parámetros y etiquetas para iterar en la creación de gráficas
+    parametros = ["learning_rate", "epochs", "batch_size"]
+    etiquetas = ["Learning Rate", "Epochs", "Batch Size"]
+
+    # Generar y guardar las gráficas
+    for i, parametro in enumerate(parametros):
+        # Gráfica del parámetro vs Tiempo de Entrenamiento
+        plt.figure()
+        plt.scatter(data[parametro], data["training_time"], color="blue")
+        plt.xlabel(etiquetas[i])
+        plt.ylabel("Training Time (ms)")
+        plt.title(f"{etiquetas[i]} vs Training Time")
+        plt.grid()
+        training_time_path = os.path.join(output_folder, f"{etiquetas[i]}_vs_Training_Time.png")
+        plt.savefig(training_time_path)
+        plt.close()
+        print(f"Gráfica guardada en: {training_time_path}")
+
+        # Gráfica del parámetro vs Porcentaje de Éxitos
+        plt.figure()
+        plt.scatter(data[parametro], data["success_rate"], color="green")
+        plt.xlabel(etiquetas[i])
+        plt.ylabel("Success Rate (%)")
+        plt.title(f"{etiquetas[i]} vs Success Rate")
+        plt.grid()
+        success_rate_path = os.path.join(output_folder, f"{etiquetas[i]}_vs_Success_Rate.png")
+        plt.savefig(success_rate_path)
+        plt.close()
+        print(f"Gráfica guardada en: {success_rate_path}")
+
+
 def main():
     print("TRAINING A NEURAL NETWORK - " + NAME)
     rospy.init_node("nn_training")
@@ -240,9 +291,22 @@ def main():
 
                 # Guardar la matriz de confusión en un archivo CSV separado si se desea
                 conf_matrix_path = os.path.join(output_folder, f"conf_matrix_LR{learning_rate}_Epochs{epochs}_Batch{batch_size}.csv")
-                numpy.savetxt(conf_matrix_path, conf_matrix, delimiter=",", fmt='%d')
+                #numpy.savetxt(conf_matrix_path, conf_matrix, delimiter=",", fmt='%d')
+                with open(conf_matrix_path, mode='w', newline='') as file:
+                    writer = csv.writer(file)
+                    
+                    # Crear encabezado para las columnas de "Expected"
+                    headers = ["Recognized \\ Expected"] + [str(i) for i in range(len(conf_matrix))]
+                    writer.writerow(headers)
+
+                    # Escribir cada fila de la matriz de confusión con la estructura solicitada
+                    for i, row in enumerate(conf_matrix):
+                        writer.writerow([i] + list(row))
+                
                 print(f"Matriz de confusión guardada en: {conf_matrix_path}")
 
+    # Generar gráficas al finalizar el programa
+    generar_graficas(output_folder, csv_file_path)
     print(f"Resultados guardados en: {csv_file_path}")
 
 # ----------------------------------------------------------------------------------------
