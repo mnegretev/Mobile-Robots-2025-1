@@ -77,7 +77,16 @@ class NeuralNetwork(object):
         #     nabla_b[-l] = delta
         #     nabla_w[-l] = delta*ylpT  where ylpT is the transpose of outputs vector of layer l-1
         #
+        delta = (y[-1] - yt) * y[-1] * (1 - y[-1])
+        nabla_b = delta
+        nabla_w = numpy.dot(delta, y[-2].transpose())
         
+        for l in range(2, self.num_layers):
+            z = y[-l]
+            sp = z * (1 - z)  # Derivada de la función sigmoide
+            delta = numpy.dot(self.weights[-l+1].transpose(), delta) * sp
+            nabla_b[-l] = delta
+            nabla_w[-l] = numpy.dot(delta, y[-l-1].transpose())
         
         return nabla_w, nabla_b
 
