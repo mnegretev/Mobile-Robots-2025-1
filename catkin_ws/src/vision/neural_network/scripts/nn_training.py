@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # TRAINING A NEURAL NETWORK
 #
 # Instructions:
@@ -53,8 +53,7 @@ class NeuralNetwork(object):
         for i in range(len(self.biases)):
             u = numpy.dot(self.weights[i],x) + self.biases[i]
             x = 1.0 / (1.0 + numpy.exp(-u))
-            y.append(x)
-        
+            y.append(x) 
         return y
 
     def backpropagate(self, x, yt):
@@ -84,9 +83,7 @@ class NeuralNetwork(object):
         for i in range(2, self.num_layers):
             delta = numpy.dot(self.weights[-i+1].transpose(), delta)*y[-i]*(1-y[-i])
             nabla_b[-i] = delta
-            nabla_w[-i] = delta*y[-i-1].transpose()
-         
-        
+            nabla_w[-i] = delta*y[-i-1].transpose()       
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -224,8 +221,7 @@ def main():
                 results.write("Batch size = %d " %batch_size)
                 results.write("Learning rate = %d\n" %learning_rate)
                 results.write("Número de aciertos = %d\n" %hits)
-                results.write("Tiempo de entrenamiento = %f [s]\n" %time)
-    
+                results.write("Tiempo de entrenamiento = %f [s]\n" %time)   
     #El archivo de resultado es guardado en Mobile-Robots-2025-1
     results.close()
     print("\nProceso final/Resultados impresos correctamente")
