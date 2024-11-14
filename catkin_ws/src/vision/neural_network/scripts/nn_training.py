@@ -60,6 +60,7 @@ class NeuralNetwork(object):
         y = self.feedforward_verbose(x)
         nabla_b = [numpy.zeros(b.shape) for b in self.biases]
         nabla_w = [numpy.zeros(w.shape) for w in self.weights]
+        yt = numpy.array(yt)
         # TODO:
         # Return a tuple [nabla_w, nabla_b] containing the gradient of cost function C with respect to
         # each weight and bias of all the network. The gradient is calculated assuming only one training
@@ -78,15 +79,26 @@ class NeuralNetwork(object):
         #     nabla_w[-l] = delta*ylpT  where ylpT is the transpose of outputs vector of layer l-1
         #
         #yL = (y_1 (1 - y_1) #formula obtenida de notas, si no agrego esta función, me aparece un error al usar L : delta=(yL-yt)*yL*(1-yL) en "L"
-        L : delta=(yL-yt)*yL*(1-yL)
-        nabla_b = delta
-        nabla_w = delta*(yLpT)
         
-        for l in range (L-1): #pendiente i que es lo que va a recorrer? 
-            delta = (WT * delta)*yl*(1-yl)
-            nabla_b[-l] = delta
-            nabla_w[-l] = delta*ylpT
-            
+       
+
+    # Cálculo del error en la capa de salida (delta_L)
+    # yt es el valor real, y es la predicción de la red
+        
+        L = delta = (y[L-1] - yt) * y[L-1] * (1 - y[L-1])  # Derivada de la función sigmoide
+    
+    #Gradiente para la capa de salida
+        nabla_b[-1] = delta  # Gradiente de los sesgos en la capa de salida
+        nabla_w[-1] = numpy.dot(delta, activations[-2].transpose())  # Gradiente de los pesos en la capa de salida
+    
+    #  Retropropagación del error para las capas anteriores
+        for l in range(2, self.num_layers):
+            z = activations[-l-1]  # Activación de la capa l-1
+            sp = z * (1 - z)  # Derivada de la función sigmoide
+            delta = numpy.dot(self.weights[-l+1].transpose(), delta) * sp  # Error para la capa l
+            nabla_b[-l] = delta  # Gradiente de los sesgos en la capa l
+            nabla_w[-l] = numpy.dot(delta, activations[-l-1].transpose())#Gradientede los pesos en lacapa l
+        
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
