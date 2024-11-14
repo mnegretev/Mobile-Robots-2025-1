@@ -219,7 +219,7 @@ def main():
             df.to_excel(writer, sheet_name=key, index=False)
     print("Resultados guardados en 'resultados_neural_network.xlsx'")
 
-    # Código original para evaluar la red después del entrenamiento comentado
+    ##################
     # print("\nPress key to test network or ESC to exit...")
     # numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
     # cmd = cv2.waitKey(0)
