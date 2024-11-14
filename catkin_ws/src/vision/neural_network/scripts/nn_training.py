@@ -13,7 +13,6 @@ import random
 import numpy
 import rospy
 import rospkg
-import time
 
 NAME = "PACHECO SALGADO MAURICIO"
 
@@ -55,7 +54,7 @@ class NeuralNetwork(object):
             u = numpy.dot(self.weights[i],x) + self.biases[i]
             x = 1.0 / (1.0 + numpy.exp(-u))
             y.append(x)
-            
+        
         return y
 
     def backpropagate(self, x, yt):
@@ -80,12 +79,13 @@ class NeuralNetwork(object):
         #     nabla_w[-l] = delta*ylpT  where ylpT is the transpose of outputs vector of layer l-1
         #
         delta = (y[-1]-yt)*y[-1]*(1-y[-1])
-        nabla_w[-1] = delta*y[-2].T
+        nabla_w[-1] = delta*y[-2].transpose()
         nabla_b[-1] = delta
-        for i in range (2, self.num_layers):
-            delta = numpy.dot(self.weights[-i+1].T, delta)*y[-i]*(1-y[-i])
-            nabla_w[-i] = delta*y[-i-1].T
+        for i in range(2, self.num_layers):
+            delta = numpy.dot(self.weights[-i+1].transpose(), delta)*y[-i]*(1-y[-i])
             nabla_b[-i] = delta
+            nabla_w[-i] = delta*y[-i-1].transpose()
+         
         
         return nabla_w, nabla_b
 
@@ -149,48 +149,87 @@ def main():
     rospy.init_node("nn_training")
     rospack = rospkg.RosPack()
     dataset_folder = rospack.get_path("neural_network") + "/handwritten_digits/"
-    
+    #epochs        = 3
+    #batch_size    = 10
+    #learning_rate = 1.0
+    cmd = 0
+    prueba = 0
+    if rospy.has_param("~epochs"):
+        epochs = rospy.get_param("~epochs")
+    if rospy.has_param("~batch_size"):
+        batch_size = rospy.get_param("~batch_size")
+    if rospy.has_param("~learning_rate"):
+        learning_rate = rospy.get_param("~learning_rate") 
+
     training_dataset, testing_dataset = load_dataset(dataset_folder)
     
-    learning_rates = [0.5, 1.0, 3.0, 10.0]
-    epoch_sets = [3, 10, 50, 100]
-    batch_sizes = [5, 10, 30, 100]
-    num_classifications = 100
+    try:
+        saved_data = numpy.load(dataset_folder+"network.npz",allow_pickle=True)
+        layers = [saved_data['w'][0].shape[1]] + [b.shape[0] for b in saved_data['b']]
+        nn = NeuralNetwork(layers, weights=saved_data['w'], biases=saved_data['b'])
+        print("Loading data from previously trained model with layers " + str(layers))
+    except:
+        nn = NeuralNetwork([784,30,10])
+        pass
+    #Inicialización de archivo de resultados
+    results = open("Results.txt", "w")
 
-    results = []
+    #Entrenamiento con diferentes parámetros
+    for epochs in [3,10,50,100]:
+        if cmd == 27 or rospy.is_shutdown():
+            break
 
-    for eta in learning_rates:
-        for epochs in epoch_sets:
-            for batch_size in batch_sizes:
-                times = []
-                accuracies = []
-                for _ in range(num_classifications):
-                    start_time = rospy.Time.now()
-                    nn = NeuralNetwork([784, 30, 10])
-                    nn.train_by_SGD(training_dataset, epochs, batch_size, eta)
-                    end_time = rospy.Time.now()
-                    duration = (end_time - start_time).to_sec()
-                    times.append(duration)
+        for batch_size in [5,10,30,100]:        
+            if cmd == 27 or rospy.is_shutdown():
+                break
 
-                    hints = 0
-                    total = len(testing_dataset)
-                    for img, label in testing_dataset:
-                        output = nn.feedforward(img)
-                        if numpy.argmax(output) == numpy.argmax(label):
-                            hints += 1
+            for learning_rate in [0.5,1.0,3.0,10.0]:
+                if cmd == 27 or rospy.is_shutdown():
+                    break
+                
+                start_time = rospy.Time.now()
+                nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
+                #numpy.savez(dataset_folder + "network",w=nn.weights, b=nn.biases)
+                end_time = rospy.Time.now()
+                hits = 0
+                #print("\nPress key to test network or ESC to exit...")
+                numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
+                #cmd = cv2.waitKey(0)
 
-                    accuracy = hints / total
-                    accuracies.append(accuracy)
+                #Realiza 100 prueba a la red neuronal
+                for i in range(100):
+                #while cmd != 27 and not rospy.is_shutdown():
+                    img,label = testing_dataset[numpy.random.randint(0, 4999)]
+                    y = nn.feedforward(img).transpose()
+                    print("\nPerceptron output: " + str(y))
+                    print("Expected output  : "   + str(label.transpose()))
+                    print("Recognized digit : "   + str(numpy.argmax(y)))
+                    cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
+                    #Expected and recognized
+                    expected = numpy.argmax(label.transpose())
+                    recognized = numpy.argmax(y)
+                    #Cada vez que expected y recognized sean iguales significa si se reconoció el digito
+                    if expected == recognized:
+                        hits += 1
+                    #cmd = cv2.waitKey(0)
+                prueba += 1
+                print("Prueba #" + str(prueba))
+                print("Numero de aciertos:" + str(hits))
+                print("Tiempo de entrenamiento:"+str((end_time-start_time).to_sec())+"[s]")
+                
+                time = (end_time - start_time).to_sec()
 
-                average_time = sum(times) / num_classifications
-                average_accuracy = sum(accuracies) / num_classifications
-                results.append((eta, epochs, batch_size, average_time, average_accuracy))
-                print(f"Learning Rate: {eta}, Epochs: {epochs}, Batch Size: {batch_size}, Avg Time: {average_time:.2f}s, Avg Accuracy: {average_accuracy:.2%}")
-
-    for result in results:
-        print("Config: Learning Rate={:.1f}, Epochs={}, Batch Size={}".format(result[0], result[1], result[2]))
-        print("Avg Time: {:.2f}s, Avg Accuracy: {:.2%}".format(result[3], result[4]))
+                results.write("Prueba #%d " %prueba)
+                results.write("Epochs = %d " %epochs)
+                results.write("Batch size = %d " %batch_size)
+                results.write("Learning rate = %d\n" %learning_rate)
+                results.write("Número de aciertos = %d\n" %hits)
+                results.write("Tiempo de entrenamiento = %f [s]\n" %time)
     
+    #El archivo de resultado es guardado en Mobile-Robots-2025-1
+    results.close()
+    print("\nProceso final/Resultados impresos correctamente")
+    cmd = cv2.waitKey(0)
 
 if __name__ == '__main__':
     main()
