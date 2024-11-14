@@ -14,7 +14,7 @@ import numpy
 import rospy
 import rospkg
 import pandas as pd
-
+import time
 
 NAME = "Velasco Vanegas Ricardo Alonso"
 
@@ -145,7 +145,7 @@ def load_dataset(folder):
         testing_labels   += [label for j in range(len(images)//2)]
     return list(zip(training_dataset, training_labels)), list(zip(testing_dataset, testing_labels))
 
-import time  # Para medir el tiempo de entrenamiento
+
 
 def main():
     print("TRAINING A NEURAL NETWORK - " + NAME)
