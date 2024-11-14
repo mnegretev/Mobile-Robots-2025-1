@@ -49,6 +49,11 @@ class NeuralNetwork(object):
         # return a list containing the output of each layer, from input to output.
         # Include input x as the first output.
         #
+        $holllaaaaa
+        for i in range(len(self.biases)):
+            z = numpy.dot(self.weights[i], x) + self.biases[i]
+            x = 1.0 / (1.0 + numpy.exp(-z))  # Función de activación sigmoide
+            y.append(x)  # Guarda la salida de cada capa
         
         return y
 
