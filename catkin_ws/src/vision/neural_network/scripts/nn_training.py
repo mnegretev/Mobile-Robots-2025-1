@@ -13,6 +13,8 @@ import random
 import numpy
 import rospy
 import rospkg
+import csv
+from datetime import timedelta
 
 NAME = "Frías_Hernández_Camille_Emille_Román"
 
@@ -51,7 +53,7 @@ class NeuralNetwork(object):
         #
         for i in range(len(self.biases)):
             z = numpy.dot(self.weights[i], x) + self.biases[i]
-            x = 1.0 / (1.0 + numpy.exp(-z))  #output of the current layer is the input of the
+            x = 1.0 / (1.0 + numpy.exp(-z))  
             y.append(x)
         return y
 
@@ -126,7 +128,6 @@ class NeuralNetwork(object):
     ### END OF CLASS
     #
 
-
 def load_dataset(folder):
     print("Loading data set from " + folder)
     if not folder.endswith("/"):
@@ -142,48 +143,61 @@ def load_dataset(folder):
         testing_labels   += [label for j in range(len(images)//2)]
     return list(zip(training_dataset, training_labels)), list(zip(testing_dataset, testing_labels))
 
+def test_network(nn, testing_dataset, num_tests=100):
+    correct_predictions = 0
+    for _ in range(num_tests):
+        img, label = random.choice(testing_dataset)
+        output = nn.feedforward(img)
+        predicted_digit = numpy.argmax(output)
+        actual_digit = numpy.argmax(label)
+        if predicted_digit == actual_digit:
+            correct_predictions += 1
+    return correct_predictions
+
 def main():
     print("TRAINING A NEURAL NETWORK - " + NAME)
     rospy.init_node("nn_training")
     rospack = rospkg.RosPack()
     dataset_folder = rospack.get_path("neural_network") + "/handwritten_digits/"
-    epochs        = 3
-    batch_size    = 10
-    learning_rate = 3.0
     
-    if rospy.has_param("~epochs"):
-        epochs = rospy.get_param("~epochs")
-    if rospy.has_param("~batch_size"):
-        batch_size = rospy.get_param("~batch_size")
-    if rospy.has_param("~learning_rate"):
-        learning_rate = rospy.get_param("~learning_rate") 
-
     training_dataset, testing_dataset = load_dataset(dataset_folder)
     
     try:
-        saved_data = numpy.load(dataset_folder+"network.npz",allow_pickle=True)
+        saved_data = numpy.load(dataset_folder + "network.npz", allow_pickle=True)
         layers = [saved_data['w'][0].shape[1]] + [b.shape[0] for b in saved_data['b']]
         nn = NeuralNetwork(layers, weights=saved_data['w'], biases=saved_data['b'])
         print("Loading data from previously trained model with layers " + str(layers))
     except:
-        nn = NeuralNetwork([784,30,10])
+        nn = NeuralNetwork([784, 30, 10])
         pass
     
-    nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
-    #numpy.savez(dataset_folder + "network",w=nn.weights, b=nn.biases)
-    
-    print("\nPress key to test network or ESC to exit...")
-    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-    cmd = cv2.waitKey(0)
-    while cmd != 27 and not rospy.is_shutdown():
-        img,label = testing_dataset[numpy.random.randint(0, 4999)]
-        y = nn.feedforward(img).transpose()
-        print("\nPerceptron output: " + str(y))
-        print("Expected output  : "   + str(label.transpose()))
-        print("Recognized digit : "   + str(numpy.argmax(y)))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-        cmd = cv2.waitKey(0)
-    
+    csv_filename = "training_results.csv"
+    with open(csv_filename, mode="w", newline="") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(["epochs", "batch_size", "learning_rate", "training_time", "correct_predictions"])
+
+        epochs_range = [3,10,50,100]
+        batch_size_range = [5,10,30,100]
+        learning_rate_range = [0.5,1.0,3.0,10.0]
+
+        for epochs in epochs_range:
+            for batch_size in batch_size_range:
+                for learning_rate in learning_rate_range:
+                    rospy.loginfo(f"Training with epochs={epochs}, batch_size={batch_size}, learning_rate={learning_rate}")
+
+                    start_time = rospy.Time.now().to_sec()
+                    nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
+                    end_time = rospy.Time.now().to_sec()
+                    
+                    training_duration = round(end_time - start_time,3)
+
+                    correct_predictions = test_network(nn, testing_dataset)
+
+                    rospy.loginfo(f"Training time: {training_duration}, Correct predictions: {correct_predictions}")
+                    csv_writer.writerow([epochs, batch_size, learning_rate, training_duration, correct_predictions])
+                    csv_file.flush() 
+
+    print("\nEND of the test")
 
 if __name__ == '__main__':
     main()
