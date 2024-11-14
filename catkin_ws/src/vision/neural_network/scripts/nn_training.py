@@ -13,8 +13,10 @@ import random
 import numpy
 import rospy
 import rospkg
+import pandas as pd
 
-NAME = "FULL_NAME"
+
+NAME = "Velasco Vanegas Ricardo Alonso"
 
 class NeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -49,7 +51,12 @@ class NeuralNetwork(object):
         # return a list containing the output of each layer, from input to output.
         # Include input x as the first output.
         #
-        
+        y.append(x)
+        for i in range(len(self.biases)):
+            z = numpy.dot(self.weights[i], x) + self.biases[i]
+            x = 1.0 / (1.0 + numpy.exp(-z))
+            y.append(x)
+
         return y
 
     def backpropagate(self, x, yt):
@@ -73,7 +80,13 @@ class NeuralNetwork(object):
         #     nabla_b[-l] = delta
         #     nabla_w[-l] = delta*ylpT  where ylpT is the transpose of outputs vector of layer l-1
         #
-        
+        delta = (y[-1] - yt) * (1 - y[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = delta * y[-2].T
+        for i in range (2, self.num_layers):
+            delta = numpy.dot(self.weights[-i + 1].T, delta) * y[-i] * (1 - y[-i])
+            nabla_b[-i] = delta
+            nabla_w[-i] = delta * y[-i-1].T
         
         return nabla_w, nabla_b
 
@@ -132,48 +145,92 @@ def load_dataset(folder):
         testing_labels   += [label for j in range(len(images)//2)]
     return list(zip(training_dataset, training_labels)), list(zip(testing_dataset, testing_labels))
 
+import time  # Para medir el tiempo de entrenamiento
+
 def main():
     print("TRAINING A NEURAL NETWORK - " + NAME)
     rospy.init_node("nn_training")
     rospack = rospkg.RosPack()
     dataset_folder = rospack.get_path("neural_network") + "/handwritten_digits/"
-    epochs        = 3
-    batch_size    = 10
-    learning_rate = 3.0
     
-    if rospy.has_param("~epochs"):
-        epochs = rospy.get_param("~epochs")
-    if rospy.has_param("~batch_size"):
-        batch_size = rospy.get_param("~batch_size")
-    if rospy.has_param("~learning_rate"):
-        learning_rate = rospy.get_param("~learning_rate") 
+    learning_rates = [0.5, 1.0, 3.0, 10.0]
+    epochs_list = [3, 10, 50, 100]
+    batch_sizes = [5, 10, 30, 100]
+
+    resultados = {}
 
     training_dataset, testing_dataset = load_dataset(dataset_folder)
     
-    try:
-        saved_data = numpy.load(dataset_folder+"network.npz",allow_pickle=True)
-        layers = [saved_data['w'][0].shape[1]] + [b.shape[0] for b in saved_data['b']]
-        nn = NeuralNetwork(layers, weights=saved_data['w'], biases=saved_data['b'])
-        print("Loading data from previously trained model with layers " + str(layers))
-    except:
-        nn = NeuralNetwork([784,30,10])
-        pass
-    
-    nn.train_by_SGD(training_dataset, epochs, batch_size, learning_rate)
-    #numpy.savez(dataset_folder + "network",w=nn.weights, b=nn.biases)
-    
-    print("\nPress key to test network or ESC to exit...")
-    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-    cmd = cv2.waitKey(0)
-    while cmd != 27 and not rospy.is_shutdown():
-        img,label = testing_dataset[numpy.random.randint(0, 4999)]
-        y = nn.feedforward(img).transpose()
-        print("\nPerceptron output: " + str(y))
-        print("Expected output  : "   + str(label.transpose()))
-        print("Recognized digit : "   + str(numpy.argmax(y)))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-        cmd = cv2.waitKey(0)
-    
+    ################
+    # epochs        = 3
+    # batch_size    = 10
+    # learning_rate = 3.0
+
+    # if rospy.has_param("~epochs"):
+    #     epochs = rospy.get_param("~epochs")
+    # if rospy.has_param("~batch_size"):
+    #     batch_size = rospy.get_param("~batch_size")
+    # if rospy.has_param("~learning_rate"):
+    #     learning_rate = rospy.get_param("~learning_rate")
+
+    for lr in learning_rates:
+        for epochs in epochs_list:
+            for batch_size in batch_sizes:
+                try:
+                    saved_data = numpy.load(dataset_folder + "network.npz", allow_pickle=True)
+                    layers = [saved_data['w'][0].shape[1]] + [b.shape[0] for b in saved_data['b']]
+                    nn = NeuralNetwork(layers, weights=saved_data['w'], biases=saved_data['b'])
+                    print(f"Loading data from previously trained model with layers {layers}")
+                except:
+                    nn = NeuralNetwork([784, 30, 10])
+
+                # medir tiempo
+                empezar_tiempo = time.time()
+                nn.train_by_SGD(training_dataset, epochs, batch_size, lr)
+                tiempo_entrenamiento = time.time() - empezar_tiempo
+
+                # 100 pruebas de clasificacion
+                correctas = 0
+                num_pruebas = 100
+                for _ in range(num_pruebas):
+                    img, label = random.choice(testing_dataset) # imagen al azar
+                    output = nn.feedforward(img)
+                    predecidas = numpy.argmax(output)
+                    esperadas = numpy.argmax(label)
+                    if predecidas == esperadas:
+                        correctas += 1
+
+                precision = (correctas / num_pruebas) * 100  # Porcentaje de aciertos
+
+                key = f"LR={lr} Epochs={epochs} Batch={batch_size}"
+                resultados[key] = {
+                    "Learning Rate": lr,
+                    "Epochs": epochs,
+                    "Batch Size": batch_size,
+                    "Tiempo entrenamiento (s)": tiempo_entrenamiento,
+                    "Classification Accuracy (%)": precision
+                }
+                print(f"{key}: Tiempo entrenamiento={tiempo_entrenamiento:.2f}s, Precisión={precision:.2f}%")
+
+    # excel con multiples hojas
+    with pd.ExcelWriter("resultados_neural_network.xlsx") as writer:
+        for key, result in resultados.items():
+            df = pd.DataFrame([result])
+            df.to_excel(writer, sheet_name=key, index=False)
+    print("Resultados guardados en 'resultados_neural_network.xlsx'")
+
+    # Código original para evaluar la red después del entrenamiento comentado
+    # print("\nPress key to test network or ESC to exit...")
+    # numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
+    # cmd = cv2.waitKey(0)
+    # while cmd != 27 and not rospy.is_shutdown():
+    #     img,label = testing_dataset[numpy.random.randint(0, 4999)]
+    #     y = nn.feedforward(img).transpose()
+    #     print("\nPerceptron output: " + str(y))
+    #     print("Expected output  : "   + str(label.transpose()))
+    #     print("Recognized digit : "   + str(numpy.argmax(y)))
+    #     cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
+    #     cmd = cv2.waitKey(0)
 
 if __name__ == '__main__':
     main()
