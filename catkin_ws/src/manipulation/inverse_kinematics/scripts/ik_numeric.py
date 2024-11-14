@@ -196,11 +196,12 @@ def callback_ik_for_pose(req):
     print(prompt+"Calculating inverse kinematics for pose: " + str([x,y,z,R,P,Y]))
     if len(req.initial_guess) <= 0 or req.initial_guess == None:
         init_guess = rospy.wait_for_message("/hardware/arm/current_pose", Float64MultiArray, 5.0)
-        init_guess = initial_guess.data
+        init_guess = init_guess.data
     else:
         init_guess = req.initial_guess
     resp = InverseKinematicsPose2PoseResponse()
-    success, q = inverse_kinematics(x, y, z, R, P, Y, init_guess, max_iterations)
+    W = [joints[i].axis for i in range(len(joints))]
+    success, q = inverse_kinematics(x, y, z, R, P, Y, transforms, W, init_guess, max_iterations)
     if not success:
         return False
     resp.q = q
