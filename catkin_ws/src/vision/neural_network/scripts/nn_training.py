@@ -14,7 +14,7 @@ import numpy
 import rospy
 import rospkg
 
-NAME = "FULL_NAME"
+NAME = "TREJO CHAVEZ OSCAR"
 
 class NeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -49,8 +49,13 @@ class NeuralNetwork(object):
         # return a list containing the output of each layer, from input to output.
         # Include input x as the first output.
         #
+        for i in range(len(self.biases)):
+        	z = numpy.dot(self.weights[i], x) + self.biases[i]
+        	x = 1.0 / (1.0 + numpy.exp(-z))
+        	y.append(x)  # Agregar salida de cada capa
         
         return y
+
 
     def backpropagate(self, x, yt):
         y = self.feedforward_verbose(x)
@@ -73,9 +78,24 @@ class NeuralNetwork(object):
         #     nabla_b[-l] = delta
         #     nabla_w[-l] = delta*ylpT  where ylpT is the transpose of outputs vector of layer l-1
         #
-        
-        
+        # Paso 1: Calcular delta para la capa de salida L
+        # yL es la salida de la última capa, y[-1]
+        yL = y[-1]
+        delta = (yL - yt) * yL * (1 - yL)  # Delta de la capa de salida
+        # Asignar nabla para la capa de salida
+        nabla_b[-1] = delta
+        nabla_w[-1] = numpy.dot(delta, y[-2].T)  # y[-2] es la salida de la capa anterior a la última
+        # Paso 2: Retropropagar a través de las capas ocultas
+        for l in range(2, self.num_layers):
+        	# Verifica que el índice sea válido
+        	if len(self.weights) >= l and len(y) > l:
+            		WT = self.weights[-l + 1].T  # Transpuesta de la matriz de pesos de la capa siguiente
+            		delta = numpy.dot(WT, delta) * y[-l] * (1 - y[-l])  # Delta para la capa actual
+            		nabla_b[-l] = delta
+            		nabla_w[-l] = numpy.dot(delta, y[-l - 1].T)  # y[-l - 1] es la salida de la capa anterior a la actual
+    
         return nabla_w, nabla_b
+        
 
     def update_with_batch(self, batch, eta):
         #
