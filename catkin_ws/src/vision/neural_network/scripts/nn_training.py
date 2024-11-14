@@ -175,15 +175,15 @@ def main():
     results = open("Results.txt", "w")
 
     #Entrenamiento con diferentes parámetros
-    for epochs in [3,10,50,100]:
+    for epochs in [3,10,50,75,100]:
         if cmd == 27 or rospy.is_shutdown():
             break
 
-        for batch_size in [5,10,30,100]:        
+        for batch_size in [5,10,30,50,100]:        
             if cmd == 27 or rospy.is_shutdown():
                 break
 
-            for learning_rate in [0.5,1.0,3.0,10.0]:
+            for learning_rate in [0.5,1.0,3.0,5,10.0]:
                 if cmd == 27 or rospy.is_shutdown():
                     break
                 
@@ -196,8 +196,8 @@ def main():
                 numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
                 #cmd = cv2.waitKey(0)
 
-                #Realiza 100 prueba a la red neuronal
-                for i in range(100):
+                #Realiza 500 prueba a la red neuronal
+                for i in range(500):
                 #while cmd != 27 and not rospy.is_shutdown():
                     img,label = testing_dataset[numpy.random.randint(0, 4999)]
                     y = nn.feedforward(img).transpose()
