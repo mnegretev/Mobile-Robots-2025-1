@@ -1,0 +1,105 @@
+Prueba #1 Epochs = 3 Batch size = 5 Learning rate = 0
+Número de aciertos = 68
+Tiempo de entrenamiento = 1.393520 [s]
+Prueba #2 Epochs = 3 Batch size = 5 Learning rate = 1
+Número de aciertos = 83
+Tiempo de entrenamiento = 1.387263 [s]
+Prueba #3 Epochs = 3 Batch size = 5 Learning rate = 3
+Número de aciertos = 82
+Tiempo de entrenamiento = 1.430519 [s]
+Prueba #4 Epochs = 3 Batch size = 5 Learning rate = 10
+Número de aciertos = 81
+Tiempo de entrenamiento = 1.455345 [s]
+Prueba #5 Epochs = 3 Batch size = 10 Learning rate = 0
+Número de aciertos = 87
+Tiempo de entrenamiento = 1.273535 [s]
+Prueba #6 Epochs = 3 Batch size = 10 Learning rate = 1
+Número de aciertos = 88
+Tiempo de entrenamiento = 1.269369 [s]
+Prueba #7 Epochs = 3 Batch size = 10 Learning rate = 3
+Número de aciertos = 83
+Tiempo de entrenamiento = 1.273196 [s]
+Prueba #8 Epochs = 3 Batch size = 10 Learning rate = 10
+Número de aciertos = 84
+Tiempo de entrenamiento = 1.268487 [s]
+Prueba #9 Epochs = 3 Batch size = 30 Learning rate = 0
+Número de aciertos = 87
+Tiempo de entrenamiento = 1.189563 [s]
+Prueba #10 Epochs = 3 Batch size = 30 Learning rate = 1
+Número de aciertos = 86
+Tiempo de entrenamiento = 1.188978 [s]
+Prueba #11 Epochs = 3 Batch size = 30 Learning rate = 3
+Número de aciertos = 91
+Tiempo de entrenamiento = 1.189579 [s]
+Prueba #12 Epochs = 3 Batch size = 30 Learning rate = 10
+Número de aciertos = 91
+Tiempo de entrenamiento = 1.205073 [s]
+Prueba #13 Epochs = 3 Batch size = 100 Learning rate = 0
+Número de aciertos = 93
+Tiempo de entrenamiento = 1.163913 [s]
+Prueba #14 Epochs = 3 Batch size = 100 Learning rate = 1
+Número de aciertos = 87
+Tiempo de entrenamiento = 1.164494 [s]
+Prueba #15 Epochs = 3 Batch size = 100 Learning rate = 3
+Número de aciertos = 92
+Tiempo de entrenamiento = 1.165154 [s]
+Prueba #16 Epochs = 3 Batch size = 100 Learning rate = 10
+Número de aciertos = 93
+Tiempo de entrenamiento = 1.164034 [s]
+Prueba #17 Epochs = 10 Batch size = 5 Learning rate = 0
+Número de aciertos = 96
+Tiempo de entrenamiento = 4.617722 [s]
+Prueba #18 Epochs = 10 Batch size = 5 Learning rate = 1
+Número de aciertos = 88
+Tiempo de entrenamiento = 4.636118 [s]
+Prueba #19 Epochs = 10 Batch size = 5 Learning rate = 3
+Número de aciertos = 89
+Tiempo de entrenamiento = 4.624065 [s]
+Prueba #20 Epochs = 10 Batch size = 5 Learning rate = 10
+Número de aciertos = 82
+Tiempo de entrenamiento = 4.626196 [s]
+Prueba #21 Epochs = 10 Batch size = 10 Learning rate = 0
+Número de aciertos = 90
+Tiempo de entrenamiento = 4.233601 [s]
+Prueba #22 Epochs = 10 Batch size = 10 Learning rate = 1
+Número de aciertos = 87
+Tiempo de entrenamiento = 4.251991 [s]
+Prueba #23 Epochs = 10 Batch size = 10 Learning rate = 3
+Número de aciertos = 87
+Tiempo de entrenamiento = 4.223660 [s]
+Prueba #24 Epochs = 10 Batch size = 10 Learning rate = 10
+Número de aciertos = 89
+Tiempo de entrenamiento = 4.221160 [s]
+Prueba #25 Epochs = 10 Batch size = 30 Learning rate = 0
+Número de aciertos = 95
+Tiempo de entrenamiento = 3.964249 [s]
+Prueba #26 Epochs = 10 Batch size = 30 Learning rate = 1
+Número de aciertos = 88
+Tiempo de entrenamiento = 3.961857 [s]
+Prueba #27 Epochs = 10 Batch size = 30 Learning rate = 3
+Número de aciertos = 95
+Tiempo de entrenamiento = 3.968000 [s]
+Prueba #28 Epochs = 10 Batch size = 30 Learning rate = 10
+Número de aciertos = 92
+Tiempo de entrenamiento = 3.959355 [s]
+Prueba #29 Epochs = 10 Batch size = 100 Learning rate = 0
+Número de aciertos = 88
+Tiempo de entrenamiento = 3.872487 [s]
+Prueba #30 Epochs = 10 Batch size = 100 Learning rate = 1
+Número de aciertos = 88
+Tiempo de entrenamiento = 3.894511 [s]
+Prueba #31 Epochs = 10 Batch size = 100 Learning rate = 3
+Número de aciertos = 91
+Tiempo de entrenamiento = 3.920084 [s]
+Prueba #32 Epochs = 10 Batch size = 100 Learning rate = 10
+Número de aciertos = 95
+Tiempo de entrenamiento = 3.886557 [s]
+Prueba #33 Epochs = 50 Batch size = 5 Learning rate = 0
+Número de aciertos = 89
+Tiempo de entrenamiento = 23.055395 [s]
+Prueba #34 Epochs = 50 Batch size = 5 Learning rate = 1
+Número de aciertos = 90
+Tiempo de entrenamiento = 23.273756 [s]
+Prueba #35 Epochs = 50 Batch size = 5 Learning rate = 3
+Número de aciertos = 87
+Tiempo de entrenamiento = 6.748394 [s]
