@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-#
-# MOBILE ROBOTS - FI-UNAM, 2025-2
+# Reenvio de practica 3
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # TRAINING A NEURAL NETWORK
 #
 # Instructions:
