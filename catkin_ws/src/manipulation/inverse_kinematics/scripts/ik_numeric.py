@@ -20,7 +20,7 @@ from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 prompt = ""
-NAME = "FULL_NAME"
+NAME = "Frías Hernández Camille Emille Román "
    
 def forward_kinematics(q, T, W):
     x,y,z,R,P,Y = 0,0,0,0,0,0
@@ -45,7 +45,19 @@ def forward_kinematics(q, T, W):
     #     Check online documentation of these functions:
     #     http://docs.ros.org/en/jade/api/tf/html/python/transformations.html
     #
-    
+    # Identidad inicial
+    H = tft.identity_matrix()
+    # Multiplicar las transformaciones para cada articulación
+    for i in range(len(q)):
+        Ti = T[i]  # Transformación fija de la geometría
+        Ri = tft.rotation_matrix(q[i], W[i])  # Rotación por ángulo q[i] alrededor del eje W[i]
+        H = tft.concatenate_matrices(H, Ti, Ri)  # Composición de transformaciones
+    # Última transformación de la geometría del efector final
+    H = tft.concatenate_matrices(H, T[-1])
+    # Extraer posición y orientación
+    x, y, z = H[:3, 3]  # Posición
+    R, P, Y = tft.euler_from_matrix(H)  # Orientación en RPY
+
     return numpy.asarray([x,y,z,R,P,Y])
 
 def jacobian(q, T, W):
@@ -73,11 +85,20 @@ def jacobian(q, T, W):
     #     RETURN J
     #
     J = numpy.asarray([[0.0 for a in q] for i in range(6)])
-    
+    # Calcular la aproximación numérica
+    for i in range(len(q)):
+        q_next = q.copy()
+        q_prev = q.copy()
+        q_next[i] += delta_q  # Incremento
+        q_prev[i] -= delta_q  # Decremento
+        # Cinemática directa para q+delta y q-delta
+        fk_next = forward_kinematics(q_next, T, W)
+        fk_prev = forward_kinematics(q_prev, T, W)
+        # Aproximación numérica para cada columna del Jacobiano
+        J[:, i] = (fk_next - fk_prev) / (2 * delta_q)
     return J
 
 def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=20):
-    pd = numpy.asarray([x,y,z,roll,pitch,yaw])
     #
     # TODO:
     # Solve the IK problem given a kinematic description (Ti, Wi) and a desired configuration.
@@ -101,9 +122,32 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     #    Set success if maximum iterations were not exceeded and calculated angles are in valid range
     #    Return calculated success and calculated q
     #
-    q = init_guess
+    pd = numpy.asarray([x, y, z, roll, pitch, yaw])  # Configuración deseada
+    q = init_guess  # Estimación inicial
     iterations = 0
-    success = iterations < max_iter and angles_in_joint_limits(q)
+    TOL = 1e-4  # Tolerancia para error
+    success = False
+    
+    while iterations < max_iter:
+        # Cinemática directa
+        p = forward_kinematics(q, T, W)
+        # Error entre configuración deseada y calculada
+        error = p - pd
+        error[3:] = numpy.mod(error[3:] + numpy.pi, 2 * numpy.pi) - numpy.pi  # Normalizar RPY a [-pi, pi]
+        # Verificar convergencia
+        if numpy.linalg.norm(error) < TOL:
+            success = True
+            break
+        # Calcular Jacobiano y pseudo-inversa
+        J = jacobian(q, T, W)
+        J_pinv = numpy.linalg.pinv(J)  # Pseudo-inversa
+        # Actualizar configuración articular
+        q = q - numpy.dot(J_pinv, error)
+        # Normalizar ángulos articulares
+        q = numpy.mod(q + numpy.pi, 2 * numpy.pi) - numpy.pi
+        # Incrementar contador
+        iterations += 1
+    success = success and angles_in_joint_limits(q)
     
     return success, q
    

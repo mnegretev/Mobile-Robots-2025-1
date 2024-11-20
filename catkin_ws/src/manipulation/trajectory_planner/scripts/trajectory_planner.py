@@ -19,7 +19,7 @@ from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 prompt = ""
-NAME = "FULL_NAME"
+NAME = "Frías Hernández Camille Emille Román"
 
 def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=0.05):
     T = numpy.arange(0, t, step)
@@ -33,9 +33,32 @@ def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=
     # Trajectory must have a duration 't' and a sampling time 'step'
     # Return both the time T and position Q vectors 
     #
+    M = numpy.array([
+        [1, 0, 0**2, 0**3, 0**4, 0**5],   # q(0) = q0
+        [0, 1, 2*0, 3*0**2, 4*0**3, 5*0**4],  # dq(0) = dq0
+        [0, 0, 2, 6*0, 12*0**2, 20*0**3],    # ddq(0) = ddq0
+        [1, t, t**2, t**3, t**4, t**5],      # q(t) = q1
+        [0, 1, 2*t, 3*t**2, 4*t**3, 5*t**4], # dq(t) = dq1
+        [0, 0, 2, 6*t, 12*t**2, 20*t**3]     # ddq(t) = ddq1
+    ])
+    b = numpy.array([q0, dq0, ddq0, q1, dq1, ddq1])  # Condiciones iniciales y finales
+
+    # Resolver para los coeficientes
+    a = numpy.linalg.solve(M, b)
+
+    # Evaluar el polinomio en cada punto del tiempo
+    for i, time in enumerate(T):
+        Q[i] = (
+            a[0] +
+            a[1] * time +
+            a[2] * time**2 +
+            a[3] * time**3 +
+            a[4] * time**4 +
+            a[5] * time**5
+        )
     
     return T, Q
-    
+
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, Qp_start=[], Qp_end=[],
                                         Qpp_start=[], Qpp_end=[], duration=1.0, time_step=0.05):
     Q = []
