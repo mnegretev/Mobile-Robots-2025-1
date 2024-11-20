@@ -10,7 +10,7 @@
 import cv2
 import sys
 import random
-import numpy
+import numpy 
 import rospy
 import rospkg
 
@@ -89,7 +89,7 @@ class NeuralNetwork(object):
         for l in range(1,len(L)):
             delta = np.dot(np.transpose(W[l]),delta) * (y[l]) * (1-(y[l]))
             nabla_b[-l] = delta
-            nabla_w[-l] = np.dot(delta,np.transpose(y[l-1])
+            nabla_w[-l] = np.dot(delta,np.transpose(y[l-1]))
         
         return nabla_w, nabla_b
 
