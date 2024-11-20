@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-2
 # TRAINING A NEURAL NETWORK
 #
 # Instructions:
@@ -14,7 +14,7 @@ import numpy
 import rospy
 import rospkg
 
-NAME = "Torres Anguiano Azael Arturo"
+NAME = "Torres Anguiano Azael Arturo" 
 
 class NeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
