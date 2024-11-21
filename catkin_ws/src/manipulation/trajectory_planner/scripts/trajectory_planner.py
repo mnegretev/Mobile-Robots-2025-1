@@ -19,7 +19,7 @@ from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 prompt = ""
-NAME = "FULL_NAME"
+NAME = "Velasco Vanegas Ricardo Alonso"
 
 def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=0.05):
     T = numpy.arange(0, t + step, step)
