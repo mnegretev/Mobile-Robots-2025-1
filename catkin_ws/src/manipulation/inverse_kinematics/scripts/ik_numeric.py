@@ -20,7 +20,7 @@ from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 prompt = ""
-NAME = "FULL_NAME"
+NAME = "Jesus Honorato Valverde Flores "
    
 def forward_kinematics(q, T, W):
     x,y,z,R,P,Y = 0,0,0,0,0,0
@@ -45,6 +45,17 @@ def forward_kinematics(q, T, W):
     #     Check online documentation of these functions:
     #     http://docs.ros.org/en/jade/api/tf/html/python/transformations.html
     #
+    H = tft.identity_matrix(4)
+    
+    for i in range (len(q)):
+        Ti = T[i]
+        Ri = tft.rotation_matrix(q[i], w[i])
+        
+        H = tft.concatenate_matrices(H, Ti)
+        H = tft.cancatenate_matrices(H, Ri)
+        
+    Ti_final = T  [7]
+    H = tft.concatenate.euler_from_matrix[H]  
     
     return numpy.asarray([x,y,z,R,P,Y])
 
@@ -74,6 +85,18 @@ def jacobian(q, T, W):
     #
     J = numpy.asarray([[0.0 for a in q] for i in range(6)])
     
+    for i in range (len(q)):
+        q_next = numpy.copy(q)
+        q_prev = numpy.copy(q)
+        
+        q_next[i] += delta_q
+        q_next[i] -= delta_q
+        
+        fk_next = forward_kinematics(q_next,T,W)
+        fk_prev = forward_kinematics(q_prev,T,W)
+        
+        J[:,i] = (fk_next - fk_prev) / (2 * delta_q)
+    
     return J
 
 def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=20):
@@ -102,7 +125,33 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     #    Return calculated success and calculated q
     #
     q = init_guess
+    tol = 1e-6
     iterations = 0
+    
+    while iterations < max_iter:
+        
+        p = forward_kinematics(q,T,W)
+        
+        error = p- pd
+        
+        error[3:] = numpy.mod(error[3:] + numpy.pi, 2 * numpy.pi) - numpy.pi
+        
+        error_norm = numpy.linalg.norm(error)
+        
+        if error_norm < tol:
+            break
+        
+        J = jacobin(q,T,W)
+        
+        J_pseudo_inv = numpy.linalg.pinv(J)
+        
+        q = q - numpy.dot(J_pseudo_inv,error)
+        
+        q = numpy.mod(q + numpy.pi, 2 * numpy.pi) - numpy.pi
+        
+        iterations +=1
+           
+       
     success = iterations < max_iter and angles_in_joint_limits(q)
     
     return success, q
