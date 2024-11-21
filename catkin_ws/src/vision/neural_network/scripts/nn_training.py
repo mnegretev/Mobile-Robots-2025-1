@@ -80,16 +80,18 @@ class NeuralNetwork(object):
         #
         #yL = (y_1 (1 - y_1) #formula obtenida de notas, si no agrego esta función, me aparece un error al usar L : delta=(yL-yt)*yL*(1-yL) en "L"
         
-       
+        W = self.weights
         L = delta = (y[-1] - yt) * y[-1] * (1 - y[-1])  # Derivada de la función sigmoide
         nabla_b[-1] = delta 
-        nabla_w[-1] = np.dot(delta,np.transpose(y[-1])) #faltó buscas que significa "p"
+        nabla_w[-1] = numpy.dot(delta,numpy.transpose(y[-2])) 
     
     
-        for l in range(1,len(L)):
-            delta = np.dot(transpose(W[l]),delta) * (y[l]) * (1-(y[l]))
+        for l in range(2,len(W) + 1):
+            
+            delta = numpy.dot(numpy.transpose(W[-l+1]),delta) * (y[l]) * (1-(y[l]))
             nabla_b[-l] = delta
-            nabla_w[-l] = np.dot(delta,transpose(y[l-1]))
+            nabla_w[-l] = numpy.dot(delta,numpy.transpose(y[-l-1]))
+
         
         return nabla_w, nabla_b
 
