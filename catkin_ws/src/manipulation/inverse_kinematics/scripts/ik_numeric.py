@@ -16,6 +16,7 @@ import numpy
 import tf
 import tf.transformations as tft
 import urdf_parser_py.urdf
+import csv
 from std_msgs.msg import Float64MultiArray
 from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -97,7 +98,12 @@ def jacobian(q, T, W):
 
 def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=20):
     pd = numpy.asarray([x, y, z, roll, pitch, yaw])
-    #
+    print(pd)
+    q = init_guess
+    iterations = 0
+    TOL = 1e-6  
+    success = False
+#
     # TODO:
     # Solve the IK problem given a kinematic description (Ti, Wi) and a desired configuration.
     # where:
@@ -120,26 +126,41 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     #    Set success if maximum iterations were not exceeded and calculated angles are in valid range
     #    Return calculated success and calculated q
     #
-    q = init_guess
-    iterations = 0
-    TOL = 1e-6  
+    csv_file = "ik_results.csv"
+    try:
+        with open(csv_file, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            # Escribir encabezado si el archivo está vacío
+            if file.tell() == 0:
+                writer.writerow(["x", "y", "z", "roll", "pitch", "yaw", "iterations", "Succes"])
+    except Exception as e:
+        rospy.logerr(f"Error abriendo/creando archivo CSV: {e}")
+        return success, q
+
     while iterations < max_iter:
         p = forward_kinematics(q, T, W)
         error = p - pd
         error[3:] = numpy.mod(error[3:] + numpy.pi, 2 * numpy.pi) - numpy.pi  
 
         if numpy.linalg.norm(error) < TOL:
-            return True, q
+            success = True
+            break
 
         J = jacobian(q, T, W)
-
         dq = numpy.dot(numpy.linalg.pinv(J), error)
         q -= dq
-
-        q = numpy.mod(q + numpy.pi, 2 * numpy.pi) - numpy.pi
+        q = numpy.mod(q + numpy.pi, 2 * numpy.pi) - numpy.pi 
         iterations += 1
 
-    return False, q
+    try:
+        with open(csv_file, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([x, y, z, roll, pitch, yaw, iterations, success])
+    except Exception as e:
+        rospy.logerr(f"Error escribiendo en archivo CSV: {e}")
+
+    print("Iteraciones encontradas: ", iterations)
+    return success, q
 
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, duration=1.0, time_step=0.05):
     clt = rospy.ServiceProxy("/manipulation/polynomial_trajectory", GetPolynomialTrajectory)
@@ -246,6 +267,7 @@ def main():
     prompt = rospy.get_name().upper() + ".->"
     joint_names    = rospy.get_param("~joint_names", [])
     max_iterations = rospy.get_param("~max_iterations", 20)
+    print("Max iterations = " + str(max_iterations))
     print(prompt+"Using joints: " + str(joint_names))
     joints, transforms = get_model_info(joint_names)
     rospy.Service("/manipulation/ik_geometric/ik_for_trajectory", InverseKinematicsPose2Traj, callback_ik_for_trajectory)
