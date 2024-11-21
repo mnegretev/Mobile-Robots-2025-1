@@ -19,8 +19,10 @@ from std_msgs.msg import Float64MultiArray
 from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
+import csv
+
 prompt = ""
-NAME = "FULL_NAME"
+NAME = "Velasco Vanegas Ricardo Alonso"
    
 def forward_kinematics(q, T, W):
     x,y,z,R,P,Y = 0,0,0,0,0,0
@@ -46,7 +48,19 @@ def forward_kinematics(q, T, W):
     #     http://docs.ros.org/en/jade/api/tf/html/python/transformations.html
     #
     
-    return numpy.asarray([x,y,z,R,P,Y])
+    H = tft.identity_matrix()
+    
+    for i in range(len(q)):
+        Hi = T[i] # posicion 0
+        Ri = tft.rotation_matrix(q[i], W[i]) # rotacion
+        H = tft.concatenate_matrices(H, Hi, Ri)
+    
+    H = tft.concatenate_matrices(H, T[7]) # agarrar
+    
+    x, y, z = H[:3, 3] #extraer de matriz
+    R, P, Y = tft.euler_from_matrix(H)  # extraer rotacion
+    
+    return numpy.asarray([x, y, z, R, P, Y])
 
 def jacobian(q, T, W):
     delta_q = 0.000001
@@ -72,12 +86,29 @@ def jacobian(q, T, W):
     #           i-th column of J = ( FK(i-th row of q_next) - FK(i-th row of q_prev) ) / (2*delta_q)
     #     RETURN J
     #
-    J = numpy.asarray([[0.0 for a in q] for i in range(6)])
     
+    J = numpy.zeros((6, len(q))) #matriz 6x7
+
+    for i in range(len(q)):
+        q_next = q.copy()
+        q_prev = q.copy()
+        q_next[i] += delta_q
+        q_prev[i] -= delta_q
+
+        fk_next = forward_kinematics(q_next, T, W) #valores
+        fk_prev = forward_kinematics(q_prev, T, W)
+
+        J[:, i] = (fk_next - fk_prev) / (2 * delta_q) #aproximar derivada parcial
+
     return J
 
 def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=20):
     pd = numpy.asarray([x,y,z,roll,pitch,yaw])
+    print(pd)
+    q = init_guess
+    iterations = 0
+    TOL = 1e-6  
+    success = False
     #
     # TODO:
     # Solve the IK problem given a kinematic description (Ti, Wi) and a desired configuration.
@@ -101,10 +132,24 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     #    Set success if maximum iterations were not exceeded and calculated angles are in valid range
     #    Return calculated success and calculated q
     #
-    q = init_guess
-    iterations = 0
-    success = iterations < max_iter and angles_in_joint_limits(q)
     
+    while iterations < max_iter:
+        p = forward_kinematics(q, T, W) # posicion actual
+        
+        error = p - pd
+        error[3:] = numpy.mod(error[3:] + numpy.pi, 2 * numpy.pi) - numpy.pi #angulos
+
+        if numpy.linalg.norm(error) < TOL: #revisar error
+            success = True
+            return success, q
+
+        J = jacobian(q, T, W)
+        q = q - numpy.dot(numpy.linalg.pinv(J), error)
+        q = numpy.mod(q + numpy.pi, 2 * numpy.pi) - numpy.pi
+        iterations += 1
+
+
+    success = False # si llega a las iteraciones maximas sin problema
     return success, q
    
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, duration=1.0, time_step=0.05):
