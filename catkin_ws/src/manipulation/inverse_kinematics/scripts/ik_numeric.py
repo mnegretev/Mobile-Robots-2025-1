@@ -132,8 +132,9 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     error = numpy.zeros(6)
     q = init_guess
     iterations = 0
-    success = iterations < max_iter and angles_in_joint_limits(q)
+    success = False
     
+    # Mientras el error sea grande y no se haya alcanzado el número máximo de iteraciones
     while numpy.linalg.norm(pd - forward_kinematics(q, T, W)) > 1e-6 and iterations < max_iter:
         # Calcula la cinemática directa 'p' llamando a la función correspondiente
         p = forward_kinematics(q, T, W)
@@ -155,7 +156,7 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
         # Asegúrate de que todos los ángulos de 'q' estén en el rango [-pi, pi]
         q = (q + numpy.pi) % (2 * numpy.pi) - numpy.pi
         
-        # Recalcula la cinemática directa 'p'
+        # Recalcula la cinemática directa 'p' para el nuevo 'q'
         p = forward_kinematics(q, T, W)
         
         # Recalcula el error y asegúrate de que los ángulos estén en el rango [-pi, pi]
@@ -163,10 +164,22 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
         error[3:] = (error[3:] + numpy.pi) % (2 * numpy.pi) - numpy.pi
         
         iterations += 1
+        
+        # Imprimir el número de iteraciones cada 5 iteraciones para evitar exceso de impresiones
+        if iterations % 5 == 0:
+            print(f"Iteración: {iterations}, Error: {numpy.linalg.norm(error)}")
     
-    success = iterations < max_iter and angles_in_joint_limits(q)
+    # Verificar si se completó la cinemática inversa y si se están cumpliendo los límites de los ángulos
+    if iterations < max_iter and angles_in_joint_limits(q):
+        success = True
+    
+    if success:
+        print(f"Cinemática inversa completa en {iterations} iteraciones.")
+    else:
+        print("Cinemática no completa")
     
     return success, q
+
 
    
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, duration=1.0, time_step=0.05):
