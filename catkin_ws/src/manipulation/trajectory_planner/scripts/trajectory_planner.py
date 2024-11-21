@@ -11,7 +11,7 @@
 import math
 import sys
 import rospy
-import numpy
+import numpy 
 import tf
 import tf.transformations as tft
 from std_msgs.msg import Float64MultiArray
@@ -19,10 +19,10 @@ from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 prompt = ""
-NAME = "FULL_NAME"
+NAME = "Salazar Barrera Diego"
 
 def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=0.05):
-    T = numpy.arange(0, t, step)
+    T = numpy.arange(0, t, step) # Include the final time
     Q = numpy.zeros(T.shape)
     #
     # TODO:
@@ -33,6 +33,30 @@ def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=
     # Trajectory must have a duration 't' and a sampling time 'step'
     # Return both the time T and position Q vectors 
     #
+
+
+
+    # Solve for the polynomial coefficients
+    # The equations system Ax = b
+    A = numpy.array([
+        [1, 0, 0, 0, 0, 0],           # q(0) = q0
+        [0, 1, 0, 0, 0, 0],           # dq(0) = dq0
+        [0, 0, 2, 0, 0, 0],           # ddq(0) = ddq0
+        [1, t, t**2, t**3, t**4, t**5],  # q(t) = q1
+        [0, 1, 2*t, 3*t**2, 4*t**3, 5*t**4],  # dq(t) = dq1
+        [0, 0, 2, 6*t, 12*t**2, 20*t**3]  # ddq(t) = ddq1
+    ])
+    b = numpy.array([q0, dq0, ddq0, q1, dq1, ddq1])
+    
+    # Solve for the coefficients
+    coeffs = numpy.linalg.solve(A, b)
+    
+    # Evaluate the polynomial at each time step
+    for i, t_i in enumerate(T):
+        Q[i] = (
+            coeffs[0] + coeffs[1]*t_i + coeffs[2]*t_i**2 +
+            coeffs[3]*t_i**3 + coeffs[4]*t_i**4 + coeffs[5]*t_i**5
+        )
     
     return T, Q
     
