@@ -96,13 +96,17 @@ def jacobian(q, T, W):
         FK_next = forward_kinematics(q_next,T,W)
         FK_prev = forward_kinematics(q_prev,T,W)    
         
-        J[:, i] = (FK_next[:6] - FK_prev[:6]) / (2 * delta_q)
+        J[:3, i] = (FK_next[:3] - FK_prev[:3]) / (2 * delta_q)  # Position difference
+        J[3:, i] = (FK_next[3:] - FK_prev[3:]) / (2 * delta_q)  # Orientation difference
+
+
 
     return J
 
+
 def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=20):
-    pd = numpy.asarray([x,y,z,roll,pitch,yaw])
-    #
+    pd = numpy.asarray([x, y, z, roll, pitch, yaw])
+       #
     # TODO:
     # Solve the IK problem given a kinematic description (Ti, Wi) and a desired configuration.
     # where:
@@ -125,35 +129,39 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     #    Set success if maximum iterations were not exceeded and calculated angles are in valid range
     #    Return calculated success and calculated q
     #
+    # Inicializa el error como un array de 6 ceros (para posición y orientación)
+    error = numpy.zeros(6)
+    
     q = init_guess
     iterations = 0
     success = iterations < max_iter and angles_in_joint_limits(q)
     
-    while numpy.linalg.norm(pd - forward_kinematics(q, T, W)[:3]) > 1e-6 and iterations < max_iter:
-        # Calculate Forward Kinematics 'p' by calling the corresponding function
+    while numpy.linalg.norm(pd - forward_kinematics(q, T, W)) > 1e-6 and iterations < max_iter:
+        # Calcula la cinemática directa 'p' llamando a la función correspondiente
         p = forward_kinematics(q, T, W)
         
-        # Calculate error = p - pd
-        error = p[:3] - pd[:3]
+        if len(p) >= 6 and len(pd) >= 6:
+            # Asegúrate de que 'error' esté bien indexado
+            error[:3] = p[:3] - pd[:3]  # Diferencia de la posición
+            error[3:] = (p[3:] - pd[3:] + numpy.pi) % (2 * numpy.pi) - numpy.pi  # Diferencia de la orientación
+        else:
+            print("Error: p o pd tiene una longitud incorrecta.")
         
-        # Ensure orientation angles of error are in [-pi,pi]
-        error[3:] = (error[3:] + numpy.pi) % (2 * numpy.pi) - numpy.pi
-        
-        # Calculate Jacobian
+        # Calcula el Jacobiano
         J = jacobian(q, T, W)
         
-        # Update q estimation with q = q - pseudo_inverse(J)*error
+        # Actualiza la estimación de 'q' con q = q - pseudo_inverse(J)*error
         J_pseudo_inverse = numpy.linalg.pinv(J)
         q = q - J_pseudo_inverse @ error
         
-        # Ensure all angles q are in [-pi, pi]
+        # Asegúrate de que todos los ángulos de 'q' estén en el rango [-pi, pi]
         q = (q + numpy.pi) % (2 * numpy.pi) - numpy.pi
         
-        # Recalculate forward kinematics p
+        # Recalcula la cinemática directa 'p'
         p = forward_kinematics(q, T, W)
         
-        # Recalculate error and ensure angles are in [-pi, pi]
-        error = p[:3] - pd[:3]
+        # Recalcula el error y asegúrate de que los ángulos estén en el rango [-pi, pi]
+        error[:3] = p[:3] - pd[:3]
         error[3:] = (error[3:] + numpy.pi) % (2 * numpy.pi) - numpy.pi
         
         iterations += 1
@@ -161,6 +169,7 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     success = iterations < max_iter and angles_in_joint_limits(q)
     
     return success, q
+
    
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, duration=1.0, time_step=0.05):
     clt = rospy.ServiceProxy("/manipulation/polynomial_trajectory", GetPolynomialTrajectory)
