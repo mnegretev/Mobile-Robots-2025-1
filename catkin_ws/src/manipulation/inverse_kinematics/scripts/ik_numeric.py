@@ -45,6 +45,7 @@ def forward_kinematics(q, T, W):
     #     Check online documentation of these functions:
     #     http://docs.ros.org/en/jade/api/tf/html/python/transformations.html
     #
+    
     H = tft.identity_matrix()
     for i, qi in enumerate(q):
         Ti = T[i] 
@@ -99,14 +100,12 @@ def jacobian(q, T, W):
         J[:3, i] = (FK_next[:3] - FK_prev[:3]) / (2 * delta_q)  # Position difference
         J[3:, i] = (FK_next[3:] - FK_prev[3:]) / (2 * delta_q)  # Orientation difference
 
-
-
     return J
 
 
 def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=20):
     pd = numpy.asarray([x, y, z, roll, pitch, yaw])
-       #
+    #
     # TODO:
     # Solve the IK problem given a kinematic description (Ti, Wi) and a desired configuration.
     # where:
@@ -131,7 +130,6 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     #
     # Inicializa el error como un array de 6 ceros (para posición y orientación)
     error = numpy.zeros(6)
-    
     q = init_guess
     iterations = 0
     success = iterations < max_iter and angles_in_joint_limits(q)
