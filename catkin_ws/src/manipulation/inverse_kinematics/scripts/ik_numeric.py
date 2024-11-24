@@ -129,7 +129,7 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
         iterations += 1
     success = iterations < max_iter and angles_in_joint_limits(q)
     
-    print("Iterations: ", iterations)
+    print("number of iterations: ", iterations)
     return success, q
    
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, duration=1.0, time_step=0.05):
