@@ -53,8 +53,9 @@ def callback_goal_reached(msg):
 
 def parse_command(cmd):
     obj = "pringles" if "PRINGLES" in cmd else "drink"
-    loc = [8.0,8.5] if "TABLE" in cmd else [3.22, 9.72]
-    return obj, loc
+    loc_name = "kitchen" if "KITCHEN" in cmd else "table"
+    loc_position = [8.0,8.5] if "TABLE" in cmd else [3.22, 9.72]
+    return obj, loc_name, loc_position
 
 #
 # This function sends the goal articular position to the left arm and sleeps 2 seconds
@@ -233,7 +234,7 @@ def get_la_polynomial_trajectory(q, duration=2.0, time_step=0.05):
 #
 # Calls the service for calculating a polynomial trajectory for the right arm
 #
-def get_la_polynomial_trajectory(q, duration=5.0, time_step=0.05):
+def get_ra_polynomial_trajectory(q, duration=5.0, time_step=0.05):
     current_p = rospy.wait_for_message("/hardware/right_arm/current_pose", Float64MultiArray)
     current_p = current_p.data
     clt = rospy.ServiceProxy("/manipulation/polynomial_trajectory", GetPolynomialTrajectory)
@@ -300,14 +301,59 @@ def main():
     #
     # FINAL PROJECT 
     #
+
+    SM_INIT = 0
+    SM_WAITING_FOR_NEW_TASK = 10
+    SM_MOVE_HEAD = 20
+    SM_PARSE_CMD = 30
+    SM_FIND_OBJECT = 40
+    SM_PREPARE_LEFT_ARM = 50
+
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
     goal_reached = False
     while not rospy.is_shutdown():
-        #
-        # Write here your AFSM
-        #
+        if current_state == SM_INIT:
+            print("SM Initialized")
+            current_state = SM_WAITING_FOR_NEW_TASK
+
+        elif current_state == SM_WAITING_FOR_NEW_TASK:
+            if new_task:
+                print("New task received: ", recognized_speech)
+                new_task = False
+                executing_task = True
+                current_state = SM_PARSE_CMD
+
+        elif current_state == SM_PARSE_CMD:
+            obj, loc_name, [goal_x, goal_y] = parse_command(recognized_speech)
+            print("Recuested obj: ", obj, "Requested loc: ", loc_name)
+            say("I'm going to take the " + obj + " to the " + loc_name)
+            current_state = SM_MOVE_HEAD
+
+        elif current_state == SM_MOVE_HEAD:
+            print("Moving head")
+            move_head(0,-0.8)
+            current_state = SM_FIND_OBJECT
+
+        elif current_state == SM_FIND_OBJECT:
+            print("Trying to find ", obj)
+            x,y,z = find_object(obj)
+            print("Object ", obj, " found at ", [x,y,z], " wrt camera")
+            x,y,z = transform_point(x,y,z, source_frame = "realsense_link", target_frame = "base_link")
+            print("Object ", obj, " found at ", [x,y,z], " wrt base")
+            x,y,z = transform_point(x,y,z, source_frame = "realsense_link", target_frame = "shoulders_left_link")
+            print("Object ", obj, " found at ", [x,y,z], " wrt left arm")
+            current_state == SM_PREPARE_LEFT_ARM
+
+        elif current_state == SM_PREPARE_LEFT_ARM:
+            # usaremos get_polynomial_la_trajectory para calcular una posicion "prepare" para el brazo izquierdo
+            ql = [-0.69, 0.20, 0.00, 1.55, 0.00, 1.16, 0.00]
+            Q = get_la_polynomial_trajectory(ql,duration = 4.0)
+            move_left_arm_with_trajectory(Q)
+            print("Preparing left arm to get an initial position")
+            current_state = -1
+
         loop.sleep()
 
 if __name__ == '__main__':
