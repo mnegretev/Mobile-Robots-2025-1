@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2024-2
+# MOBILE ROBOTS - FI-UNAM, 2025-1
 # TRAJECTORY PLANNING BY POLYNOMIALS
 #
 # Instructions:
@@ -19,7 +19,7 @@ from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 prompt = ""
-NAME = "PIZANO BRAVO ALEXIS"
+NAME = "Pizano Bravo Alexis"
 
 def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=0.05):
     T = numpy.arange(0, t, step)
@@ -45,7 +45,6 @@ def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=
     [a5, a4, a3, a2, a1, a0] = X
     print ([a5, a4, a3, a2, a1, a0])
     T = numpy.arange(0,t,step)
-    
     Q = a5*T**5 + a4*T**4 + a3*T**3 + a2*T**2 + a1*T + a0
     return T, Q
     
