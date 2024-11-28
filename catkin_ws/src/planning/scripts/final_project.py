@@ -30,7 +30,7 @@ from vision_msgs.srv import *
 from manip_msgs.srv import *
 from hri_msgs.msg import *
 
-NAME = "FULL NAME"
+NAME = "Torres Anguiano Azael Arturo"
 
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
@@ -54,7 +54,7 @@ def callback_goal_reached(msg):
 def parse_command(cmd):
     obj = "pringles" if "PRINGLES" in cmd else "drink"
     loc = [8.0,8.5] if "TABLE" in cmd else [3.22, 9.72]
-    return obj, loc
+    return obj, loc, 
 
 #
 # This function sends the goal articular position to the left arm and sleeps 2 seconds
@@ -300,14 +300,38 @@ def main():
     #
     # FINAL PROJECT 
     #
+    SM_INIT= 0;
+    SM_WAITING_FOR_NEW_TASK = 10
+    SM_MOVE_HEAD = 20
+    SM_PARSE_CMD = 30
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
     goal_reached = False
+    
     while not rospy.is_shutdown():
         #
         # Write here your AFSM
         #
+        if current_state == SM_INIT:
+            print("SM Inicio")
+            current_state = SM_WAITING_FOR_NEW_TASK
+            
+        elif current_state == SM_INIT:
+            if new_task:
+               print("New task that i recived:", recognized_speech)
+               new_task = False
+               current_state = SM_MOVE_HEAD
+        elif current_state == SM_MOVE_HEAD: #MOVER LA CABEZA
+            print("Moving head")
+            move_head(0. -0.8)
+            current_state = SM_PARSE_CMD;
+        elif current_state == SM_PARSE_CMD:  #
+            obj, loc_name, [goal_x,goal_y] = pars_commant(recorgnized_speech)
+            say("I'm going " + obj, + "to" + loc_name)
+            current_state = SM_MOVE_HEAD
+        elif current_state == SM_FIND_OBJECT:
+            print ("Try to find", obj)
         loop.sleep()
 
 if __name__ == '__main__':
