@@ -19,10 +19,10 @@ from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 prompt = ""
-NAME = "FULL_NAME"
+NAME = "TOrres Azael"
 
 def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=0.05):
-    T = numpy.arange(0, t, step)
+    T = numpy.arange(0, t +step, step)
     Q = numpy.zeros(T.shape)
     #
     # TODO:
@@ -33,6 +33,28 @@ def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=
     # Trajectory must have a duration 't' and a sampling time 'step'
     # Return both the time T and position Q vectors 
     #
+    
+     A = numpy.array([
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 2, 0, 0, 0],
+        [1, t, t**2, t**3, t**4, t**5],
+        [0, 1, 2*t, 3*t**2, 4*t**3, 5*t**4],
+        [0, 0, 2, 6*t, 12*t**2, 20*t**3]
+    ])
+    b = numpy.array([q0, dq0, ddq0, q1, dq1, ddq1])
+    coeffs = numpy.linalg.solve(A, b)
+
+    for i in range(len(T)): #trayectoria
+        t_i = T[i]
+        Q[i] = (
+            coeffs[0]
+            + coeffs[1] * t_i
+            + coeffs[2] * t_i**2
+            + coeffs[3] * t_i**3
+            + coeffs[4] * t_i**4
+            + coeffs[5] * t_i**5
+        )
     
     return T, Q
     
