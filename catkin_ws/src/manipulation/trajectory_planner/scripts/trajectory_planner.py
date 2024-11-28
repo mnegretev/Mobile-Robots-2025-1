@@ -8,7 +8,6 @@
 # position, velocity and acceleration, using a fifth-degree polynomial.
 # Modify only sections marked with the 'TODO' comment
 #
-
 import math
 import sys
 import rospy
@@ -22,7 +21,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 prompt = ""
 NAME = "Larios Avila Armando"
 
-def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=0, t=1.0, step=0.05):
+def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=0.05):
     T = numpy.arange(0, t + step, step)
     Q = numpy.zeros(T.shape)
     #
@@ -34,19 +33,30 @@ def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=0, t=1.0, step=
     # Trajectory must have a duration 't' and a sampling time 'step'
     # Return both the time T and position Q vectors 
     #
-    a0 = q0
-    a1 = dq0
-    a2 = ddq0 / 2
-    a3 = (20 * q1 - 20 * q0 - (8 * dq1 + 12 * dq0) * t - (3 * ddq0 - ddq1) * t**2) / (2 * t**3)
-    a4 = (30 * q0 - 30 * q1 + (14 * dq1 + 16 * dq0) * t + (3 * ddq0 - 2 * ddq1) * t**2) / (2 * t**4)
-    a5 = (12 * q1 - 12 * q0 - (6 * dq1 + 6 * dq0) * t - (ddq0 - ddq1) * t**2) / (2 * t**5)
+    A = numpy.array([
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 2, 0, 0, 0],
+        [1, t, t**2, t**3, t**4, t**5],
+        [0, 1, 2*t, 3*t**2, 4*t**3, 5*t**4],
+        [0, 0, 2, 6*t, 12*t**2, 20*t**3]
+    ])
+    b = numpy.array([q0, dq0, ddq0, q1, dq1, ddq1])
+    coeffs = numpy.linalg.solve(A, b)
 
-    for i, time in enumerate(T):
-        Q[i] = (a0 + a1 * time + a2 * time**2 + 
-                a3 * time**3 + a4 * time**4 + a5 * time**5)
+    for i in range(len(T)): #trayectoria
+        t_i = T[i]
+        Q[i] = (
+            coeffs[0]
+            + coeffs[1] * t_i
+            + coeffs[2] * t_i**2
+            + coeffs[3] * t_i**3
+            + coeffs[4] * t_i**4
+            + coeffs[5] * t_i**5
+        )
 
     return T, Q
-
+    
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, Qp_start=[], Qp_end=[],
                                         Qpp_start=[], Qpp_end=[], duration=1.0, time_step=0.05):
     Q = []
@@ -65,17 +75,19 @@ def get_polynomial_trajectory_multi_dof(Q_start, Q_end, Qp_start=[], Qp_end=[],
         Q.append(Qi)
     Q = numpy.asarray(Q)
     Q = Q.transpose()
-    return Q, T
+    return Q,T
+
 
 def get_trajectory_time(p1, p2, speed_factor):
     p1 = numpy.asarray(p1)
     p2 = numpy.asarray(p2)
     m = max(numpy.absolute(p1 - p2))
-    return m / speed_factor + 0.5
+    return m/speed_factor + 0.5
+
 
 def callback_polynomial_trajectory(req):
-    print(prompt + "Calculating polynomial trajectory")
-    t = req.duration if req.duration > 0 else get_trajectory_time(req.p1, req.p2, 0.25)
+    print(prompt+"Calculating polynomial trajectory")
+    t  = req.duration if req.duration > 0 else get_trajectory_time(req.p1, req.p2, 0.25)
     Q, T = get_polynomial_trajectory_multi_dof(req.p1, req.p2, req.v1, req.v2, req.a1, req.a2, t, req.time_step)
     trj = JointTrajectory()
     trj.header.stamp = rospy.Time.now()
