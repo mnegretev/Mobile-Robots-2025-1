@@ -30,7 +30,7 @@ from vision_msgs.srv import *
 from manip_msgs.srv import *
 from hri_msgs.msg import *
 
-NAME = "FULL NAME"
+NAME = "Diego Salazar Barrera"
 
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
@@ -300,6 +300,9 @@ def main():
     #
     # FINAL PROJECT 
     #
+    SM_INIT = 0
+    SM_WAITING_FOR_NEW_TASK = 10
+    
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
@@ -307,6 +310,28 @@ def main():
     while not rospy.is_shutdown():
         #
         # Write here your AFSM
+        if current_state == SM_INIT:
+            print("SM Initialized")
+            current_state = SM_WAITING_FOR_NEW_TASK
+        elif current_state == SM_WAITING_FOR_NEW_TASK:
+            if new_task:
+                print("New task received: ", recognized_speech)
+                new_task = False
+                current_state = SM_MOVE_HEAD
+        elif current_state == SM_MOVE_HEAD:
+            print ("Moving head")
+            move_head(0,-0.8)
+            current_state = -1
+        elif current_state == SM_PARSE_CMD:
+            obj, [goal_x, goal_y] = parse_command(recognized_speech)
+            print("Requested obj: " + obj + "Requested loc: " + loc)
+            say("I'm going to take the " + obj + "to the " + loc)
+            current_state = SM_MOVE_HEAD        
+        
+        
+        
+        
+        
         #
         loop.sleep()
 
