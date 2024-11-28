@@ -300,9 +300,11 @@ def main():
     #
     # FINAL PROJECT 
     #
+    
     SM_INIT = 0
     SM_WAITING_FOR_NEW_TASK = 10
-    
+    SM_MOVE_HEAD=20
+    SM_PARSE_CMD = 30
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
@@ -310,23 +312,30 @@ def main():
     while not rospy.is_shutdown():
         #
         # Write here your AFSM
-        if current_state == SM_INIT:
+        if current_state == "SM_INIT":
             print("SM Initialized")
             current_state = SM_WAITING_FOR_NEW_TASK
         elif current_state == SM_WAITING_FOR_NEW_TASK:
             if new_task:
                 print("New task received: ", recognized_speech)
                 new_task = False
-                current_state = SM_MOVE_HEAD
+                current_state = SM_PARSE_CMD
         elif current_state == SM_MOVE_HEAD:
             print ("Moving head")
             move_head(0,-0.8)
-            current_state = -1
+            current_state = SM_FIND_OBJECT
         elif current_state == SM_PARSE_CMD:
             obj, [goal_x, goal_y] = parse_command(recognized_speech)
-            print("Requested obj: " + obj + "Requested loc: " + loc)
-            say("I'm going to take the " + obj + "to the " + loc)
+            print("Requested obj: " , obj , "Requested loc: " , loc_name)
+            say("I'm going to take the " + obj + "to the " + loc_name)
             current_state = SM_MOVE_HEAD        
+        elif current_state == SM_FIND_OBJECT:
+            print("Trying to find", obj)
+            x,y,z = find_object(obj)
+            print("Object", obj, "found at ", [x, y, z], "wrt camera")
+            x,y,z = transform_point(x, y, z, source_frame="realsense_link", target_frame = "base_link")
+            print("Object", obj, "found at ", [x, y, z], "wrt base")
+            x,y,z = transform_point(x, y, z, source_frame="base_link", target_frame = "shoulders_left_link")
         
         
         

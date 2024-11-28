@@ -76,9 +76,13 @@ def segment_by_color(img_bgr, points, obj_name):
     img_center = cv2.mean(idx)
     print("XYZ: ", mean)
     print("IMG: ", img_center)
+    img_x = img_center[0]
+    img_y = img_center[1]
+    x = mean[0]
+    y = mean[1]
+    z = mean[2]
 
-    return [img_center[0], img_center[1], mean[0], mean[1], mean[2]]
-    #return [img_x, img_y, x,y,z]
+    return [img_x, img_y, x,y,z]
 
 def callback_find_object(req):
     global pub_point, img_bgr, mask, test1, test2
