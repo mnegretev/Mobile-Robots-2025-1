@@ -86,7 +86,7 @@ def jacobian(q, T, W):
     
     return J
 
-def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=25):
+def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=200):
     pd = numpy.asarray([x,y,z,roll,pitch,yaw])
     global total_iterations
     #
@@ -237,7 +237,7 @@ def main():
     rospy.init_node("ik_geometric")
     prompt = rospy.get_name().upper() + ".->"
     joint_names    = rospy.get_param("~joint_names", [])
-    max_iterations = rospy.get_param("~max_iterations", 20)
+    max_iterations = rospy.get_param("~max_iterations", 200)
     print(prompt+"Joint names: " + str(joint_names))
     print(prompt+"max_iterations: " + str(max_iterations))
 
