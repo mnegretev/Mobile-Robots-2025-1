@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2025-1
+# MOBILE ROBOTS - FI-UNAM, 2025-2
 # FINAL PROJECT - SIMPLE SERVICE ROBOT
 # 
 # Instructions:
@@ -30,7 +30,7 @@ from vision_msgs.srv import *
 from manip_msgs.srv import *
 from hri_msgs.msg import *
 
-NAME = "FULL NAME"
+NAME = "Gonzalez Aguilar Julio Cesar"
 
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
@@ -143,10 +143,11 @@ def move_head(pan, tilt):
 # low-level movements. The mobile base will move at the given linear-angular speeds
 # during a time given by 't'
 #
-def move_base(linear, angular, t):
+def move_base(linear, hor, angular, t):
     global pubCmdVel
     cmd = Twist()
     cmd.linear.x = linear
+    cmd.linear.y = hor
     cmd.angular.z = angular
     pubCmdVel.publish(cmd)
     time.sleep(t)
@@ -292,23 +293,119 @@ def main():
     listener = tf.TransformListener()
     loop = rospy.Rate(10)
     print("Waiting for services...")
+    
     rospy.wait_for_service('/manipulation/la_ik_pose')
+    print('paso1')
     rospy.wait_for_service('/manipulation/ra_ik_pose')
+    print('paso2')
     rospy.wait_for_service('/vision/obj_reco/detect_and_recognize_object')
+    print('paso3')
     print("Services are now available.")
 
-    #
-    # FINAL PROJECT 
-    #
     executing_task = False
-    current_state = "SM_INIT"
+    #current_state = "SM_INIT"
+    current_state = "SM_WAITING_NEW_TASK"
     new_task = False
     goal_reached = False
     while not rospy.is_shutdown():
-        #
-        # Write here your AFSM
-        #
-        loop.sleep()
+        # INICIA LA MÁQUINA DE ESTADOS 
+        if current_state == "SM_INIT":
+            print("Esperando una nueva tarea")
+            current_state = "SM_WAITING_NEW_TASK"
+        elif current_state == "SM_WAITING_NEW_TASK":
+            
+            #if new_task:
+            if True:
+                recognized_speech="bring PRINGLES to kitchen"
+                requested_object, requested_location =parse_command(recognized_speech)
+                
+                
+                print("Nueva tarea recibida: " + requested_object + " to " + str(requested_location))
+                say("Ejecutando el comando, " + recognized_speech)
+                current_state = "SM_MOVE_HEAD"
+                new_task = False
+                executing_task = True
+            
+        # MOVER LA CABEZA PARA ENCONTRAR OBJETOS 
+        elif current_state == "SM_MOVE_HEAD":
+            print("Moviendo la cabeza")
+            move_head(0, -0.8)
+            print("Cabeza movida, finalizado")
+            current_state = "SM_FIND_OBJECT"
+            # ORIGEN DE CABEZA
+            
+        # ENCUENTRA EL OBJETO
+        elif current_state == "SM_FIND_OBJECT":
+            print("Intentando encontrar: " + requested_object)	
+            x, y, z = find_object(requested_object)
+            print("Objeto encontrado: " + requested_object + " en " + str([x, y, z]))
+            current_state = "SM_TAKE_OBJECT"
+            
+        # MOVIMIENTO DEL BRAZO 
+        elif current_state == "SM_TAKE_OBJECT":
+            # PRINGLES
+            if requested_object == "pringles":
+                x, y, z = transform_point(x, y, z)
+                print("Posición transformada: " + str([x, y, z]))
+                print("Abriendo pinza")
+                move_left_gripper(1.0)
+                print("Moviendo brazo...")
+                Q = get_la_polynomial_trajectory([-1, 0.2, 0, 1.5, 0, 1.16, 0], duration=4.0)  # OBTIENE LA TRAYECTORIA
+                move_left_arm_with_trajectory(Q)
+                print("Calculando cinemática inversa...")
+                Q = calculate_inverse_kinematics_left(x + 0.05, y, z + 0.2, 0, -1.5, 0)
+                move_left_arm_with_trajectory(Q)
+                time.sleep(6)
+                move_left_gripper(-0.5)
+                Q = get_la_polynomial_trajectory([-1, 0.2, 0, 1.5, 0, 1.16, 0], duration=4.0)
+                move_left_arm_with_trajectory(Q)
+                
+            elif requested_object == "drink":
+                move_base(0, 1, 0, 1)
+                time.sleep(2)
+                x, y, z = transform_point(x, y, z, "realsense_link", "shoulders_right_link")
+                print("Abriendo pinza")
+                move_right_gripper(1.0)
+                print("Posición transformada: " + str([x, y, z]))
+                print("Moviendo brazo...")
+                Q = get_la_polynomial_trajectory([-1, 0.2, 0, 1.5, 1, 0, 0], duration=4.0)
+                move_right_arm_with_trajectory(Q)
+                print("Calculando cinemática inversa...")
+                Q = calculate_inverse_kinematics_right(x + 0.04, y, z + 0.2, 0, -1.5, 0)
+                move_right_arm_with_trajectory(Q)
+                time.sleep(4)
+                move_right_gripper(-0.5)
+                Q = get_la_polynomial_trajectory([-1, 0.2, 0, 1.5, 0, 1.16, 0], duration=4.0)
+                move_right_arm_with_trajectory(Q)
+            current_state = "SM_NAVIGATE"
+            
+        elif current_state == "SM_NAVIGATE":
+            move_base(-5, 0, 0, 2)
+            go_to_goal_pose(requested_location[0], requested_location[1])
+            if goal_reached:
+                say("Goal reached")
+                current_state = "SM_GOAL"
+                goal_reached = False
+                
+        elif current_state == "SM_GOAL":
+            Q = get_la_polynomial_trajectory([1, 0, 0, 0, 0, 0, 0], duration=2.0)
+            if requested_object == "pringles":
+                move_left_arm_with_trajectory(Q)
+                time.sleep(4)
+                move_left_gripper(1.0)
+            else:
+                move_right_arm_with_trajectory(Q)
+                time.sleep(4)
+                move_right_gripper(1)
+            say("Task completed")
+            current_state = "SM_COMPLETED"
+        
+        # FIN DE COMANDO DE TAREAS
+        elif current_state == "SM_COMPLETED":           
+            executing_task = False
+            current_state = "SM_WAITING_NEW_TASK"
+
+        #loop.sleep()
 
 if __name__ == '__main__':
     main()
