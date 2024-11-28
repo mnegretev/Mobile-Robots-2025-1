@@ -30,7 +30,7 @@ from vision_msgs.srv import *
 from manip_msgs.srv import *
 from hri_msgs.msg import *
 
-NAME = "Pèrez Aguilar Roberto"
+NAME = "FULL NAME"
 
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
@@ -233,7 +233,7 @@ def get_la_polynomial_trajectory(q, duration=2.0, time_step=0.05):
 #
 # Calls the service for calculating a polynomial trajectory for the right arm
 #
-def get_ra_polynomial_trajectory(q, duration=5.0, time_step=0.05):
+def get_la_polynomial_trajectory(q, duration=5.0, time_step=0.05):
     current_p = rospy.wait_for_message("/hardware/right_arm/current_pose", Float64MultiArray)
     current_p = current_p.data
     clt = rospy.ServiceProxy("/manipulation/polynomial_trajectory", GetPolynomialTrajectory)
@@ -271,17 +271,10 @@ def transform_point(x,y,z, source_frame="realsense_link", target_frame="shoulder
     obj_p = listener.transformPoint(target_frame, obj_p)
     return [obj_p.point.x, obj_p.point.y, obj_p.point.z]
 
-
-def log_event(event):
-    global pubLog
-    log_msg = String()
-    log_msg.data = event
-    pubLog.publish(log_msg)
-
 def main():
     global new_task, recognized_speech, executing_task, goal_reached
     global pubLaGoalPose, pubRaGoalPose, pubHdGoalPose, pubLaGoalGrip, pubRaGoalGrip
-    global pubLaGoalTraj, pubRaGoalTraj, pubGoalPose, pubCmdVel, pubSay, pubLog
+    global pubLaGoalTraj, pubRaGoalTraj, pubGoalPose, pubCmdVel, pubSay
     print("FINAL PROJECT - " + NAME)
     rospy.init_node("final_project")
     rospy.Subscriber('/hri/sp_rec/recognized', RecognizedSpeech, callback_recognized_speech)
@@ -289,14 +282,13 @@ def main():
     pubGoalPose = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
     pubCmdVel   = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
     pubSay      = rospy.Publisher('/hri/speech_generator', SoundRequest, queue_size=10)
-    pubLaGoalPose = rospy.Publisher("/hardware/left_arm/goal_pose" , Float64MultiArray, queue_size=10)
-    pubRaGoalPose = rospy.Publisher("/hardware/right_arm/goal_pose", Float64MultiArray, queue_size=10)
-    pubHdGoalPose = rospy.Publisher("/hardware/head/goal_pose"     , Float64MultiArray, queue_size=10)
-    pubLaGoalGrip = rospy.Publisher("/hardware/left_arm/goal_gripper" , Float64, queue_size=10)
-    pubRaGoalGrip = rospy.Publisher("/hardware/right_arm/goal_gripper", Float64, queue_size=10)
+    pubLaGoalPose = rospy.Publisher("/hardware/left_arm/goal_pose" , Float64MultiArray, queue_size=10);
+    pubRaGoalPose = rospy.Publisher("/hardware/right_arm/goal_pose", Float64MultiArray, queue_size=10);
+    pubHdGoalPose = rospy.Publisher("/hardware/head/goal_pose"     , Float64MultiArray, queue_size=10);
+    pubLaGoalGrip = rospy.Publisher("/hardware/left_arm/goal_gripper" , Float64, queue_size=10);
+    pubRaGoalGrip = rospy.Publisher("/hardware/right_arm/goal_gripper", Float64, queue_size=10);
     pubLaGoalTraj = rospy.Publisher("/manipulation/la_q_trajectory", JointTrajectory, queue_size=10)
     pubRaGoalTraj = rospy.Publisher("/manipulation/ra_q_trajectory", JointTrajectory, queue_size=10)
-    pubLog       = rospy.Publisher('/log', String, queue_size=10)
     listener = tf.TransformListener()
     loop = rospy.Rate(10)
     print("Waiting for services...")
@@ -304,110 +296,19 @@ def main():
     rospy.wait_for_service('/manipulation/ra_ik_pose')
     rospy.wait_for_service('/vision/obj_reco/detect_and_recognize_object')
     print("Services are now available.")
-    
+
     #
     # FINAL PROJECT 
     #
-    
-    
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
     goal_reached = False
-
     while not rospy.is_shutdown():
-        if current_state == "SM_INIT":
-            print("Waiting for new task")
-            log_event("SM_INIT: Waiting for new task")
-            current_state = "SM_WAITING_NEW_TASK"
-
-        elif current_state == "SM_WAITING_NEW_TASK":
-            if new_task:
-                requested_object, requested_location = parse_command(recognized_speech)
-                print(f"New task received: {requested_object} to {requested_location}")
-                log_event(f"SM_WAITING_NEW_TASK: New task received - {requested_object} to {requested_location}")
-                say(f"Executing the command, {recognized_speech}")
-                current_state = "SM_MOVE_HEAD"
-                new_task = False
-                executing_task = True
-
-        elif current_state == "SM_MOVE_HEAD":
-            print("Moving head")
-            log_event("SM_MOVE_HEAD: Moving head")
-            move_head(0, -1)
-            current_state = "SM_FIND_OBJECT"
-
-        elif current_state == "SM_FIND_OBJECT":
-            print(f"Trying to find: {requested_object}")
-            log_event(f"SM_FIND_OBJECT: Trying to find - {requested_object}")
-            x, y, z = find_object(requested_object)
-            print(f"Found {requested_object} at {x}, {y}, {z}")
-            log_event(f"SM_FIND_OBJECT: Found {requested_object} at [{x}, {y}, {z}]")
-            current_state = "SM_TAKE_OBJECT"
-
-        elif current_state == "SM_TAKE_OBJECT":
-            x, y, z = transform_point(x, y, z)
-            print(f"Transformed position: {x}, {y}, {z}")
-            log_event(f"SM_TAKE_OBJECT: Transformed position - [{x}, {y}, {z}]")
-
-            if requested_object == "pringles":
-                print("Using left arm...")
-                log_event("SM_TAKE_OBJECT: Using left arm")
-                move_left_gripper(1.0)
-                move_left_arm_with_trajectory(get_la_polynomial_trajectory([-1, 0.2, 0, 1.55, 0, 1.16, 0], duration=4.0))
-                Q = calculate_inverse_kinematics_left(x + 0.05, y, z + 0.1, 0, -1.5, 0)
-                move_left_arm_with_trajectory(Q)
-                time.sleep(2)
-                move_left_gripper(-0.5)
-            elif requested_object == "drink":
-                print("Using right arm...")
-                log_event("SM_TAKE_OBJECT: Using right arm")
-                move_right_gripper(1.0)
-                move_right_arm_with_trajectory(get_ra_polynomial_trajectory([-0.55, 0.15, 0.1, 1.5, 1.0, 0, 0], duration=4.0))
-                Q = calculate_inverse_kinematics_right(x, y, z, 0, -1.5, 0)
-                move_right_arm_with_trajectory(Q)
-                time.sleep(2)
-                move_right_gripper(-0.5)
-
-            current_state = "SM_NAVIGATE"
-
-        elif current_state == "SM_NAVIGATE":
-            print(f"Navigating to {requested_location}")
-            log_event(f"SM_NAVIGATE: Navigating to {requested_location}")
-
-            if requested_location == "kitchen":
-                go_to_goal_pose(3.22, 9.2)
-            else:
-                go_to_goal_pose(8.0, 8.5)
-
-            if goal_reached:
-                print("Position reached. Preparing for delivery...")
-                log_event("SM_NAVIGATE: Position reached, preparing for delivery")
-                move_base(2, 1, 2, 2.7 if requested_location == "kitchen" else 2)
-                current_state = "SM_GOAL"
-                goal_reached = False
-
-        elif current_state == "SM_GOAL":
-            print("Delivering object...")
-            log_event("SM_GOAL: Delivering object")
-            if requested_object == "pringles":
-                Q = get_la_polynomial_trajectory([0.7, 0, 0, 1.55, 0, -0.5, 0], duration=4.0)
-                move_left_arm_with_trajectory(Q)
-                move_left_gripper(1.0)
-            elif requested_object == "drink":
-                Q = get_ra_polynomial_trajectory([-0.7, 0.2, 0, 1.55, 0, 1.16, 0], duration=4.0)
-                move_right_arm_with_trajectory(Q)
-                move_right_gripper(1.0)
-
-            say("Your requested item has been delivered")
-            current_state = "SM_COMPLETED"
-
-        elif current_state == "SM_COMPLETED":
-           print("Task completed")
-           log_event("SM_COMPLETED: Task completed")
-           executing_task = False
-           current_state = "SM_WAITING_NEW_TASK"
-
+        #
+        # Write here your AFSM
+        #
+        loop.sleep()
 
 if __name__ == '__main__':
     main()
