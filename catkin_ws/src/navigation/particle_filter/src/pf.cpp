@@ -31,11 +31,11 @@ std::vector<geometry_msgs::Pose2D> get_initial_distribution(int N, float min_x, 
      * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
      * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
      */
-    for(size_t i = 0; i < N; i++)
+    for(size_t i = 0; i < N; i++) /*Generacion de particulas aleatorias */
     {
-        particles[i].x = rnd.uniformReal(min_x, max_x);
-        particles[i].y = rnd.uniformReal(min_y, max_y);
-        particles[i].theta = rnd.uniformReal(min_a, max_a);
+        particles[i].x = rnd.uniformReal(min_x, max_x);/*Generar posicion x aleatoria */
+        particles[i].y = rnd.uniformReal(min_y, max_y);/*Generar posicion y aleatoria */
+        particles[i].theta = rnd.uniformReal(min_a, max_a);/*Generar posicion theta aleatoria */
     }
     return particles;
 }
@@ -52,11 +52,11 @@ void move_particles(std::vector<geometry_msgs::Pose2D>& particles, float delta_x
      * Add gaussian noise to each new position. Use sigma2 as variance.
      * You can use the function rnd.gaussian(mean, variance)
      */
-     for(size_t i = 0; i < particles.size(); i++)
+     for(size_t i = 0; i < particles.size(); i++)/*Iteracion sobre todas las particulas */
      {
-         particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0,sigma2);
-         particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0,sigma2);
-         particles[i].theta += delta_t + rnd.gaussian(0,sigma2);
+         particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0,sigma2);/*Actualizacion de la posicion x */
+         particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0,sigma2);/*Actualizacion de la posicion y */
+         particles[i].theta += delta_t + rnd.gaussian(0,sigma2); /*Actualizacion de la posicion theta */
      }
 }
 
@@ -68,14 +68,14 @@ std::vector<sensor_msgs::LaserScan> simulate_particle_scans(std::vector<geometry
      * Review the code to simulate a laser scan for each particle given the set of particles and a static map. 
      */
     std::vector<sensor_msgs::LaserScan> simulated_scans(particles.size());
-    for(size_t i=0; i < particles.size(); i++)
+    for(size_t i=0; i < particles.size(); i++)/*Iteracion sobre las particulas*/
     {
-        geometry_msgs::Pose sensor_pose;
+        geometry_msgs::Pose sensor_pose;/*Configuracion de l apose del sensor */
         sensor_pose.position.x    = particles[i].x;
         sensor_pose.position.y    = particles[i].y;
         sensor_pose.orientation.w = cos(particles[i].theta/2);
         sensor_pose.orientation.z = sin(particles[i].theta/2);
-        simulated_scans[i] = *particle_filter::simulateRangeScan(map, sensor_pose, sensor_specs);
+        simulated_scans[i] = *particle_filter::simulateRangeScan(map, sensor_pose, sensor_specs); /*Simulacion del escaneo laser */
     }
     return simulated_scans;
 }
@@ -100,18 +100,18 @@ std::vector<float> calculate_particle_similarities(std::vector<sensor_msgs::Lase
     
     /*
      */
-    for (size_t i=0; i < simulated_scans.size(); i++)
+    for (size_t i=0; i < simulated_scans.size(); i++)/*Bucle para calcular las similitudes */
     {
-        float delta=0;
-        for(size_t j=0; j< simulated_scans[i].ranges.size(); j++)
+        float delta=0; /*Inicializacion de la variable de diferencia acumulada */
+        for(size_t j=0; j< simulated_scans[i].ranges.size(); j++)/*Comparacion de rangos (Submuestreo y manejo de valores infinitos) */
             if(real_scan.ranges[j*downsampling] < real_scan.range_max && simulated_scans[i].ranges[j] < real_scan.range_max)
                 delta += fabs(simulated_scans[i].ranges[j]- real_scan.ranges[j*downsampling]);
             else
                 delta += real_scan.range_max;
-     	delta /= simulated_scans[i].ranges.size();
-     	similarities[i] = exp(-delta*delta/sigma2);
+     	delta /= simulated_scans[i].ranges.size();/*Promediode la diferencia */
+     	similarities[i] = exp(-delta*delta/sigma2);/*Calculo de la similitud */
     }
-    double sum=0;
+    double sum=0;/*Normalizacion de las similitudes */
     for(int i=0; i < similarities.size(); i++)
         sum += similarities[i];
     for(int i=0; i < similarities.size(); i++)
@@ -130,8 +130,8 @@ int random_choice(std::vector<float>& probabilities)
      * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
      * Return the chosen integer. 
      */
-    float x = rnd.uniformReal(0,1);
-    for(int i = 0; i < probabilities.size(); i++)
+    float x = rnd.uniformReal(0,1);/*Generacion de un numero aleatorio uniforme */
+    for(int i = 0; i < probabilities.size(); i++)/*Bucle para determinar el indice */
     {
         if(x < probabilities[i])
             return i;
@@ -157,7 +157,7 @@ std::vector<geometry_msgs::Pose2D> resample_particles(std::vector<geometry_msgs:
     
     /*
      */
-    for(size_t i = 0; i < particles.size(); i++)
+    for(size_t i = 0; i < particles.size(); i++)/*Bucle para remuestrar particulas*/
     {
         int idx = random_choice(probabilities);
         resampled_particles[i] = particles[idx];
@@ -279,14 +279,14 @@ int main(int argc, char** argv)
     float sigma2_resampling;
   
     /*Modifiable parameters*/
-    ros::param::param<int>  ("~N", N_particles, 100);
-    ros::param::param<float>("~minX", init_min_x, 1.0);
+    ros::param::param<int>  ("~N", N_particles, 300);
+    ros::param::param<float>("~minX", init_min_x, 3.0);
     ros::param::param<float>("~minY", init_min_y, -2.0);
-    ros::param::param<float>("~minA", init_min_a, -3.1);
-    ros::param::param<float>("~maxX", init_max_x, 10.5);
-    ros::param::param<float>("~maxY", init_max_y, 11.0);
-    ros::param::param<float>("~maxA", init_max_a, 3.1);
-    ros::param::param<int>  ("~ds", laser_downsampling, 10);
+    ros::param::param<float>("~minA", init_min_a, -5.0);
+    ros::param::param<float>("~maxA", init_max_a, 5.0);
+    ros::param::param<float>("~maxX", init_max_x, 10.0);
+    ros::param::param<float>("~maxY", init_max_y, 10.0);
+    ros::param::param<int>  ("~ds", laser_downsampling, 30);
     ros::param::param<float>("~s2s", sigma2_sensor, 0.1);
     ros::param::param<float>("~s2m", sigma2_movement, 0.1);
     ros::param::param<float>("~s2r", sigma2_resampling, 0.1);
