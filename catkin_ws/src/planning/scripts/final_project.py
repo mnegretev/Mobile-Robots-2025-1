@@ -190,7 +190,7 @@ def calculate_inverse_kinematics_left(x,y,z,roll, pitch, yaw):
     req_ik.roll  = roll
     req_ik.pitch = pitch
     req_ik.yaw   = yaw
-    req_ik.duration = 0;
+    req_ik.duration = 0
     req_ik.time_step = 0.05
     req_ik.initial_guess = []
     clt = rospy.ServiceProxy("/manipulation/la_ik_trajectory", InverseKinematicsPose2Traj)
@@ -209,7 +209,7 @@ def calculate_inverse_kinematics_right(x,y,z,roll, pitch, yaw):
     req_ik.roll  = roll
     req_ik.pitch = pitch
     req_ik.yaw   = yaw
-    req_ik.duration = 0;
+    req_ik.duration = 0
     req_ik.time_step = 0.05
     req_ik.initial_guess = []
     clt = rospy.ServiceProxy("/manipulation/ra_ik_trajectory", InverseKinematicsPose2Traj)
@@ -303,13 +303,14 @@ def main():
     #
     SM_INIT = 0
     SM_WAITING_FOR_NEW_TASK = 10
-    SM_MOVE_HEAD = 20
-    SM_PARSE_CMD = 30
-    SM_TAKE_OBJECt = 40
-    SM_NAVIGATE_TO_GOAL = 50
-    SM_CONFIRM_ARRIVAL = 60
-    SM_PLACE_OBJECT = 70
-    SM_RETURN_TO_INITIAL = 80
+    SM_PARSE_CMD = 20
+    SM_MOVE_HEAD = 30
+    SM_FIND_OBJECT =40
+    SM_TAKE_OBJECT = 50
+    SM_NAVIGATE_TO_GOAL = 60
+    SM_CONFIRM_ARRIVAL = 70
+    SM_PLACE_OBJECT = 80
+    SM_RETURN_TO_INITIAL = 90
     
     executing_task = False
     current_state = "SM_INIT"
@@ -319,28 +320,28 @@ def main():
     	if current_state == SM_INIT:
     	    print("SM Initialized")
     	    current_state = SM_WAITING_FOR_NEW_TASK
-        elif current_state == SM_WAITING_FOR_NEW_TASK:
+    	elif current_state == SM_WAITING_FOR_NEW_TASK:
             if new_task:
                 print("New task received: ", recognized_speech)
                 new_task = False 
                 current_state = SM_PARSE_CMD
-        elif current_state == SM_PARSE_CMD:
+    	elif current_state == SM_PARSE_CMD:
             obj, loc_name, [goal_x, goal_y] = parse_command(recognized_speech)
             print("Requested obj: ", obj, "Requested loc: ", loc_name)
             say("I'm going to take the " + obj + " to the " + loc_name)
             current_state = SM_MOVE_HEAD
-        elif current_state == SM_MOVE_HEAD:
+    	elif current_state == SM_MOVE_HEAD:
             print("Moving head")
             move_head(0, -0.8)
             current_state = SM_FIND_OBJECT
-        elif current_state == SM_FIND_OBJECT:
+    	elif current_state == SM_FIND_OBJECT:
             print("Trying to find ", obj)
             x,y,z = find_object(obj)
             print("Object ", obj, "found at ", [x,y,z],"wtr camera")
             x,y,z=transform_point(x,y,z, source_frame="realsense_link", target_frame="base_link")
             print("Object ", obj, "found at ", [x,y,z],"wtr base")
             current_state = SM_TAKE_OBJECT
-        elif current_state == SM_TAKE_OBJECT:
+    	elif current_state == SM_TAKE_OBJECT:
             print ("Taking the ", obj, "at", [x,y,z] )
             if obj=="pringles":
             	print ("Moving the left arm")
@@ -358,29 +359,29 @@ def main():
             move_base(-0.2, 0,1.5)
             say("I took the " + obj + "Now I'm going to the " + loc_name)
             current_state = SM_NAVIGATE_TO_GOAL
-        elif current_state == SM_NAVIGATE_TO_GOAL:
+    	elif current_state == SM_NAVIGATE_TO_GOAL:
             print("Navigating to the", loc_name, "at", [goal_x, goal_y])
             go_to_goal_pose(goal_x, goal_y)
             current_state = SM_CONFIRM_ARRIVAL
-	elif current_state == SM_CONFIRM_ARRIVAL:
-	    if goal_reached:
-	    	print("Arrived at", loc_name)
-	    	current_state = SM_PLACE_OBJECT
-	    else:
-	        print("Goal not reached, retrying...")
-	        current_state = SM_NAVIGATE_TO_GOAL
-	elif current_state == SM_PLACE_OBJECT:
-	    print("Placing the", obj, "at the", loc_name)
-	    say ("Enjoy your" + obj)
-	    if obj == "pringles":
-	    	move_left_gripper(0.0)
-	    	move_left_arm(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-	    else:
-	    	move_right_gripper(0.0)
-        	move_right_arm(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            print("I placed" + obj + " at the " + loc_name + ". Task complete!")
-            say("Enjoy your" + obj)
-            current_state = SM_RETURN_TO_INITIAL
+    	elif current_state == SM_CONFIRM_ARRIVAL:
+    		if goal_reached:
+	    		print("Arrived at", loc_name)
+	    		current_state = SM_PLACE_OBJECT
+	    	else:
+	        	print("Goal not reached, retrying...")
+	        	current_state = SM_NAVIGATE_TO_GOAL
+    	elif current_state == SM_PLACE_OBJECT:
+    		print("Placing the", obj, "at the", loc_name)
+    		say ("Enjoy your" + obj)
+	    	if obj == "pringles":
+	    		move_left_gripper(0.0)
+	    		move_left_arm(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+	    	else:
+	    		move_right_gripper(0.0)
+	    		move_right_arm(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+	    	print("I placed" + obj + " at the " + loc_name + ". Task complete!")
+	    	say("Enjoy your " + obj)
+	    	current_state = SM_RETURN_TO_INITIAL
     	elif current_state == SM_RETURN_TO_INITIAL:
     	    print("Returning to initial position")
     	    home_x, home_y = 3.5, 5.82
@@ -391,13 +392,13 @@ def main():
     	    	current_state = SM_WAITING_FOR_NEW_TASK
     	    else:
     	    	print("Failed to return to initial position. Retrying...")
-        	say("I couldn't return to the initial position. Retrying...")
-        	current_state = SM_RETURN_TO_INITIAL
+    	    	say("I couldn't return to the initial position. Retrying...")
+    	    	current_state = SM_RETURN_TO_INITIAL
 
         #
         # Write here your AFSM
         #
-        loop.sleep()
+    loop.sleep()
 
 if __name__ == '__main__':
     main()
