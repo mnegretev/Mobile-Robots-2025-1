@@ -145,10 +145,11 @@ def move_head(pan, tilt):
 # low-level movements. The mobile base will move at the given linear-angular speeds
 # during a time given by 't'
 #
-def move_base(linear, angular, t):
+def move_base(linear, linear2, angular, t):
     global pubCmdVel
     cmd = Twist()
     cmd.linear.x = linear
+    cmd.linear.y = linear2
     cmd.angular.z = angular
     pubCmdVel.publish(cmd)
     time.sleep(t)
@@ -306,7 +307,7 @@ def main():
     #States 
     SM_INIT = 0
     SM_WAITING_FOR_COMMAND = 10
-    #SM_SEARCH_OBJECT = 20
+    SM_MOVE_BASE= 20
     SM_MOVE_HEAD = 30
     SM_FIND_OBJECT = 40 
     SM_TAKE_OBJECT = 50
@@ -317,6 +318,8 @@ def main():
     #Some constants
     prepare_left = [-0.681, 0.188, -0.024, 1.470, -0.007, 1.104, 0.00]
     prepare_right= [-1.113, -0.192, 0.012, 1.533, 1.118, 0.006, -0.0]
+    home = [0,0,0,0,0,0,0]
+    leave = [3,0,0,0,0,0,0]
     executing_task = False
     current_state = SM_INIT
     new_task = False
@@ -329,37 +332,46 @@ def main():
             print("Waiting for command")
             say("waiting for command")
             new_task=True
-            if new_task:
-                print("NEW command recived")
-                say("NEW command recived")
-                # No se pudo implementar el reconocmiento de voz así que se resolverá solo la instrucción siguiente 
-                # object_to_take, location, name = parse_command(recognized_speech)
-                # print("Recibed task: "+ recognized_speech)
-                # say("Executing: " + recognized_speech)
-                object_to_take = "pringles"
-                location = [3.22, 9.72]
-                name = "kitchen"
-                current_state = SM_MOVE_HEAD
-                new_task = False 
-                executing_task = True
+            if executing_task == False:
+                if new_task:
+                    print("NEW command recived")
+                    say("NEW command recived")
+                    # No se pudo implementar el reconocmiento de voz así que se resolverá solo la instrucción siguiente 
+                    # object_to_take, location, name = parse_command(recognized_speech)
+                    # print("Recibed task: "+ recognized_speech)
+                    # say("Executing: " + recognized_speech)
+                    object_to_take = "drink"
+                    location = [3.22, 9.72]
+                    name = "kitchen"
+                    current_state = SM_MOVE_HEAD
+                    new_task = False 
+                    executing_task = True
 
         elif current_state == SM_MOVE_HEAD:
             print("Moving head")
             move_head(0,-0.7)
-            current_state = SM_FIND_OBJECT
+            time.sleep(2)
+            current_state = SM_MOVE_BASE
         elif current_state == SM_FIND_OBJECT:
             print("Finding: " + object_to_take)
             x, y, z = find_object(object_to_take)
             print("Found it")
             say("Found " + object_to_take)
             current_state = SM_TAKE_OBJECT
+        elif current_state == SM_MOVE_BASE:
+            if object_to_take == "pringles":
+                print("LEFT")
+                hand = "LEFT"
+                move_base(1,0,0,1)
+            else:
+                print("RIGHT")
+                hand = "RIGHT"
+                move_base(1,4,1,1)
+            current_state = SM_FIND_OBJECT
         elif current_state == SM_TAKE_OBJECT:
             xb, yb, zb = transform_point(x, y, z, "realsense_link", "base_link")
             print("Deciding arm")
-            if yb > 0:
-                print("LEFT")
-                hand = "LEFT"
-                move_base(1,0,1)
+            if hand == "LEFT":
                 x, y, z = transform_point(x, y, z)
                 print("position from shoulder: " + str([x, y, z]))
                 print("Preparing gripper")
@@ -368,7 +380,7 @@ def main():
                 time.sleep(5)
                 print("Calculating kinematics")
                 move_left_gripper(1.0)
-                Q = calculate_inverse_kinematics_left(x+0.04,y,z+0.5,0,-1.5,0)
+                Q = calculate_inverse_kinematics_left(x+0.0,y,z+0.2,0,-1.5,0)
                 say("Taking object")
                 move_left_arm_with_trajectory(Q)
                 time.sleep(10)
@@ -376,9 +388,7 @@ def main():
                 Q = get_la_polynomial_trajectory(prepare_left, duration=4.0)
                 move_left_arm_with_trajectory(Q)
             else:
-                print("RIGHT")
-                hand = "RIGHT"
-                move_base(1,0,1)
+                x, y, z = transform_point(x, y, z)
                 print("position from shoulder: " + str([x, y, z]))
                 print("Preparing gripper")
                 Q = get_la_polynomial_trajectory(prepare_right, duration=4.0)
@@ -386,7 +396,7 @@ def main():
                 time.sleep(5)
                 print("Calculating kinematics")
                 move_right_gripper(1.0)
-                Q = calculate_inverse_kinematics_right(x+0.04,y,z+0.5,0,-1.5,0)
+                Q = calculate_inverse_kinematics_right(x+0.00,y,z+0.2,0,-1.5,0)
                 say("Taking object")
                 move_right_arm_with_trajectory(Q)
                 time.sleep(5)
@@ -396,29 +406,30 @@ def main():
             current_state = SM_NAVIGATE
         elif current_state == SM_NAVIGATE:
             print("Start navegation")
-            move_base(-5,0,2)
+            move_base(-5,0,0,2)
             go_to_goal_pose(location[0],location[1])
             if goal_reached:
                 say("Arrive at the " + name)
                 current_state = SM_LEAVE_OBJECT
                 goal_reached = False
+            print(goal_reached)
         elif current_state == SM_LEAVE_OBJECT:
-            move_base(1,0,5)
+            move_base(1,0,-0.5,5)
             if hand == "LEFT":
-                Q = get_la_polynomial_trajectory([1, 0, 0, 0, 0, 0, 0], duration=2.0)
+                Q = get_la_polynomial_trajectory(leave, duration=2.0)
                 move_left_arm_with_trajectory(Q)
                 time.sleep(4)
                 move_left_gripper(1.0)
-                Q = get_la_polynomial_trajectory([0, 0, 0, 0, 0, 0, 0], duration=2.0)
+                Q = get_la_polynomial_trajectory(home, duration=2.0)
                 move_left_arm_with_trajectory(Q)
                 time.sleep(4)
                 move_left_gripper(-0.5)
             else: 
-                Q = get_la_polynomial_trajectory([1, 0, 0, 0, 0, 0, 0], duration=2.0)
+                Q = get_la_polynomial_trajectory(leave, duration=2.0)
                 move_right_arm_with_trajectory(Q)
                 time.sleep(4)
                 move_right_gripper(1.0)
-                Q = get_la_polynomial_trajectory([0, 0, 0, 0, 0, 0, 0], duration=2.0)
+                Q = get_la_polynomial_trajectory(home, duration=2.0)
                 move_right_arm_with_trajectory(Q)
                 time.sleep(4)
                 move_right_gripper(-0.5)
@@ -427,6 +438,7 @@ def main():
         elif current_state == SM_RETURN_TO_START:
             go_to_goal_pose(3.5, 6.0)
             if goal_reached:
+                print("in the table")
                 say("Rady for new task")
                 goal_reached = False
                 executing_task=False
