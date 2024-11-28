@@ -36,11 +36,11 @@ def smooth_path(Q, alpha, beta, max_steps):
     nabla[0] = 0
     nabla[-1] = 0
     
-    while numpy.lanlg.norm(nabla) > tol and steps < max_steps:
+    while numpy.linalg.norm(nabla) > tol and steps < max_steps:
         for i in range (1,len(P) -1):
-            nabla[i] = alpha*(2 * P[i] - P[i -1] - P[i+1] + beta * (P[i] - Q[i])
-            P = P - epsilon * nabla
-            steps + 1 = 1
+            nabla[i] = alpha * (2 * P[i] - P[i -1] - P[i+1] + beta * (P[i] - Q[i]))            
+        P = P - epsilon * nabla
+        steps += 1        
     return P
 
 def callback_smooth_path(req):
