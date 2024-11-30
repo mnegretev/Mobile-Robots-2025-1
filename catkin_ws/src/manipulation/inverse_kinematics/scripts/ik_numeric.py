@@ -90,15 +90,13 @@ def jacobian(q, T, W):
     J = numpy.zeros((6, len(q))) #matriz 6x7
 
     for i in range(len(q)):
-        q_next = q.copy()
-        q_prev = q.copy()
-        q_next[i] += delta_q
-        q_prev[i] -= delta_q
+        q_next = [q[j] + delta_q if j == i else q[j] for j in range(len(q))]
+        q_prev = [q[j] - delta_q if j == i else q[j] for j in range(len(q))]
 
-        fk_next = forward_kinematics(q_next, T, W) #valores
+        fk_next = forward_kinematics(q_next, T, W)
         fk_prev = forward_kinematics(q_prev, T, W)
 
-        J[:, i] = (fk_next - fk_prev) / (2 * delta_q) #aproximar derivada parcial
+        J[:, i] = (fk_next - fk_prev) / (2 * delta_q) # derivada parcial
 
     return J
 
@@ -108,7 +106,7 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     q = init_guess
     iterations = 0
     TOL = 1e-6  
-    success = False
+    
     #
     # TODO:
     # Solve the IK problem given a kinematic description (Ti, Wi) and a desired configuration.
@@ -134,23 +132,23 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     #
     
     while iterations < max_iter:
-        p = forward_kinematics(q, T, W) # posicion actual
-        
-        error = p - pd
-        error[3:] = numpy.mod(error[3:] + numpy.pi, 2 * numpy.pi) - numpy.pi #angulos
+        p = forward_kinematics(q, T, W)
 
-        if numpy.linalg.norm(error) < TOL: #revisar error
-            success = True
-            return success, q
+        error = p - pd
+        error[3:] = numpy.mod(error[3:] + numpy.pi, 2 * numpy.pi) - numpy.pi #ajustar angulos
+
+        if numpy.linalg.norm(error) < TOL:  #revisar error
+            return True, numpy.asarray(q)
 
         J = jacobian(q, T, W)
-        q = q - numpy.dot(numpy.linalg.pinv(J), error)
-        q = numpy.mod(q + numpy.pi, 2 * numpy.pi) - numpy.pi
+        delta_q = numpy.dot(numpy.linalg.pinv(J), error)
+
+        # Actualizar
+        q = [(q[i] - delta_q[i] + numpy.pi) % (2 * numpy.pi) - numpy.pi for i in range(len(q))]
+
         iterations += 1
 
-
-    success = False # si llega a las iteraciones maximas sin problema
-    return success, q
+    return False, numpy.asarray(q)
    
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, duration=1.0, time_step=0.05):
     clt = rospy.ServiceProxy("/manipulation/polynomial_trajectory", GetPolynomialTrajectory)

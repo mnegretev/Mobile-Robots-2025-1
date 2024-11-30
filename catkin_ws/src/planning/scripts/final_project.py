@@ -30,7 +30,7 @@ from vision_msgs.srv import *
 from manip_msgs.srv import *
 from hri_msgs.msg import *
 
-NAME = "FULL NAME"
+NAME = "Velasco Vanegas Ricardo Alonso"
 
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
@@ -304,11 +304,53 @@ def main():
     current_state = "SM_INIT"
     new_task = False
     goal_reached = False
+
+    SM_INIT = 0
+    SM_MOVE_HEAD = 20
+    SM_WAITING_FOR_NEW_TASK = 10
+    SM_PARSE_CMD = 30
+    SM_FIND_OBJECT = 40
+
     while not rospy.is_shutdown():
+        if current_state == SM_INIT:
+            print("SM initialized")
+            current_state = SM_WAITING_FOR_NEW_TASK
+
+        elif current_state == SM_WAITING_FOR_NEW_TASK:
+            if new_task:
+                print("New Task Received: ", recognized_speech)
+                if "hello" in recognized_speech.lower():
+                    new_task = False
+                    current_state = SM_MOVE_HEAD
+                else:
+                    new_task = False
+                    current_state = SM_PARSE_CMD
+
+        elif current_state == SM_MOVE_HEAD:
+            print("Moving head")
+            move_head(0.5, -0.2)  
+            rospy.sleep(1.0)      # Espera un momento
+            move_head(-0.5, -0.2) 
+            rospy.sleep(1.0)      
+            move_head(0.0, 0.0)   # Regresa al centro
+            rospy.sleep(1.0)      
+            say("Hello, how can I assist you?")
+            current_state = SM_WAITING_FOR_NEW_TASK
+
+        elif current_state == SM_PARSE_CMD:
+            obj, [goal_x, goal_y] = parse_command(recognized_speech)
+            print("Requested obj: ", obj, " Requested loc: ", [goal_x, goal_y])
+            say("I'm going to take the " + obj + " to the " + loc)
+            current_state = SM_FIND_OBJECT
+
+        elif current_state == SM_FIND_OBJECT:
+            print("Trying to find ", obj)
+            current_state = SM_WAITING_FOR_NEW_TASK
         #
         # Write here your AFSM
         #
-        loop.sleep()
+        
+    loop.sleep()
 
 if __name__ == '__main__':
     main()

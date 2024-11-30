@@ -76,6 +76,7 @@ def segment_by_color(img_bgr, points, obj_name):
     
     #return [img_x, img_y, x,y,z]
 
+
 def callback_find_object(req):
     global pub_point, img_bgr, mask, test1, test2
     print("Trying to find object: " + req.name)
