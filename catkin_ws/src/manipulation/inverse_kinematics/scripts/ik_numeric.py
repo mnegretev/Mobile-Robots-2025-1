@@ -46,13 +46,13 @@ def forward_kinematics(q, T, W):
     #     http://docs.ros.org/en/jade/api/tf/html/python/transformations.html
     #
     
-    H = tft.identity_matrix()
-    for i in range(len(q)):
-        Ri = tft.rotation_matrix(q[i], W[i])
-        H = tft.concatenate_matrices(H,T[i],Ri)
+    H = tft.identity_matrix() #Inicializa un matriz identidad
+    for i in range(len(q)): #Calculo de la trasformacion acumulada para cada articulacion
+        Ri = tft.rotation_matrix(q[i], W[i]) #Rotacion alrededor del eje Wi por el angulo qi
+        H = tft.concatenate_matrices(H,T[i],Ri)#Multiplicar la matriz acumulada por la trsformacion de posicion y rotacion
     H = tft.concatenate_matrices(H, T[i])
     x,y,z = H[0,3], H[1,3], H[2,3]
-    R,P,Y = list(tft.euler_from_matrix(H))
+    R,P,Y = list(tft.euler_from_matrix(H))#Convertir la matriz de rotacion a angulos euler
 
     return numpy.asarray([x,y,z,R,P,Y])
 
@@ -80,10 +80,10 @@ def jacobian(q, T, W):
     #           i-th column of J = ( FK(i-th row of q_next) - FK(i-th row of q_prev) ) / (2*delta_q)
     #     RETURN J
     #
-    J = numpy.asarray([[0.0 for a in q] for i in range(6)])
+    J = numpy.asarray([[0.0 for a in q] for i in range(6)])#Inicializa una matriz jacobiana
     qn = numpy.asarray( [q,]*len(q) ) + delta_q*numpy.identity(len(q))
     qp = numpy.asarray( [q,]*len(q) ) - delta_q*numpy.identity(len(q))
-    for i in range(len(q)):
+    for i in range(len(q)):#Calcula cada columna del jacobiano
         J[:,i] = (forward_kinematics(qn[i],T, W) - forward_kinematics(qp[i], T,W)) / (delta_q*2.0)
 
     return J
@@ -114,13 +114,13 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
     #    Return calculated success and calculated q
     #
     q = init_guess
-    p = forward_kinematics(q, T, W)
+    p = forward_kinematics(q, T, W)#Calculo de la pose actual apartir de la cinematic adirecta
     iterations = 0
     tolerance = 0.001
     err = p - pd
     err[3:6] = (err[3:6] + math.pi)%(2*math.pi) - math.pi
     iterations = 0
-    while numpy.linalg.norm(err) > tolerance and iterations < max_iter:
+    while numpy.linalg.norm(err) > tolerance and iterations < max_iter:#iterar hasta que el erro r sea menor que la tolerancia, o se alcance el numeromaximo de iteraciones
         J = jacobian(q, T, W)
         q = (q -  numpy.dot(numpy.linalg.pinv(J),err) + math.pi)%(2*math.pi) - math.pi
         p = forward_kinematics(q, T, W)
