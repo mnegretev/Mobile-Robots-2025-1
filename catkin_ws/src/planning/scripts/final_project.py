@@ -30,7 +30,7 @@ from vision_msgs.srv import *
 from manip_msgs.srv import *
 from hri_msgs.msg import *
 
-NAME = "FULL NAME"
+NAME = "Aguilar Saracho Mauricio"
 
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
@@ -299,12 +299,39 @@ def main():
 
     #
     # FINAL PROJECT 
-    #
+    #   
+    SM_INIT = 0
+    SM_WAITING_FOR_NEW_TASK=10
+        
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
     goal_reached = False
+    
     while not rospy.is_shutdown():
+        if current_state == SM_INIT:
+            print("SM Initialized")
+            current_state = SM_WAITING_FOR_NEW_TASK
+        elif current_state == SM_WAITING_FOR_NEW_TASK:
+            if new_task:
+                print("New task received: ",recognized_speech)
+                new_task= False
+                current_state = SM_MOVE_CMD
+            elif current_state == SM_MOVE_HEAD:
+                print("Moving head ")
+                move_head(0, -0.8)
+                current_state = SM_FIND_OBJECT
+            elif current_state == SM_PARSE_CMD
+                obj, loc_name, [goal_x, goal_y] = parse_command(recognized_speech)
+                print("Requested obj: ",obj, "Requested loc: ", loc_name)
+                say("Im going to take the "+ obj + "to the",+loc_name)
+                current_state = SM_MAVE_HEAD
+            elif current_state == SM_FIND_OBJECT:
+                print("Trying to fing ", obj)
+                x,y,z = find_object(obj)
+                print("Object ", obj, "found at ", [x,y,z],"wrt camera")
+                x,y,z = transform_point(x,y,z)
+        
         #
         # Write here your AFSM
         #

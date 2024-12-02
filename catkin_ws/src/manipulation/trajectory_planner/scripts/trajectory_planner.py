@@ -22,8 +22,8 @@ prompt = ""
 NAME = "AGUILAR SARACHO MAURICIO"
 
 def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=0.05):
-    T = numpy.arange(0, t, step)
-    Q = numpy.zeros(T.shape)
+    T = numpy.arange(0, t, step)#CALCULO DEL TIEMPO 
+    Q = numpy.zeros(T.shape)#INICIALIZACION DEL VECTOR DE POSICIONES 
     #
     # TODO:
     # Calculate a trajectory Q as a set of N values q using a
@@ -38,10 +38,10 @@ def get_polynomial_trajectory(q0, q1, dq0=0, dq1=0, ddq0=0, ddq1=1, t=1.0, step=
          [ 20*t**3,    12*t**2,     6*t,        2,      0,  0],
          [       0,          0,       0,        0,      0,  1],
          [       0,          0,       0,        0,      1,  0],
-         [       0,          0,       0,        2,      0,  0]]
+         [       0,          0,       0,        2,      0,  0]]#dEFINICION DE LA MATRIZ,LAS PRIMERAS TRES LINEAS CORRESPONDEN A LAS CONDICIONES DEL TIEMPO FINAL Y LAS ULTIMAS TRES CORRESPONDEN A LAS CONDICIONES EN EL TIEMPO INICIAL
     A = numpy.asarray(A)
     B = numpy.asarray([q1, dq1, ddq1, q0, dq0, ddq0]).T
-    X = numpy.dot ( numpy.linalg.inv(A),B)
+    X = numpy.dot ( numpy.linalg.inv(A),B)#RESOLUCION DEL SISTEMA DE ECUACIONES
     [a5, a4, a3, a2, a1, a0] = X
     print ([a5, a4, a3, a2, a1, a0])
     T = numpy.arange(0,t,step)
