@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# MOBILE ROBOTS - FI-UNAM, 2025-1
+# MOBILE ROBOTS - FI-UNAM, 2024-2
 # INVERSE KINEMATICS USING NEWTON-RAPHSON
 #
 # Instructions:
@@ -20,7 +20,7 @@ from manip_msgs.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 prompt = ""
-NAME = "Pizano Bravo Alexis"
+NAME = "PIZANO BRAVO ALEXIS"
    
 def forward_kinematics(q, T, W):
     x,y,z,R,P,Y = 0,0,0,0,0,0
@@ -46,14 +46,13 @@ def forward_kinematics(q, T, W):
     #     http://docs.ros.org/en/jade/api/tf/html/python/transformations.html
     #
     
-    H = tft.identity_matrix()
-    for i in range(len(q)):
-        Ri = tft.rotation_matrix(q[i], W[i])
+    H = tft.identity_matrix() 
+    for i in range(len(q)): 
+        Ri = tft.rotation_matrix(q[i], W[i]) 
         H = tft.concatenate_matrices(H,T[i],Ri)
     H = tft.concatenate_matrices(H, T[i])
     x,y,z = H[0,3], H[1,3], H[2,3]
     R,P,Y = list(tft.euler_from_matrix(H))
-    
     return numpy.asarray([x,y,z,R,P,Y])
 
 def jacobian(q, T, W):
@@ -81,52 +80,33 @@ def jacobian(q, T, W):
     #     RETURN J
     #
     J = numpy.asarray([[0.0 for a in q] for i in range(6)])
-    qn = numpy.asarray( [q,] * len(q) ) + delta_q * numpy.identity(len(q))
-    qp = numpy.asarray( [q,] * len(q) ) - delta_q * numpy.identity(len(q))
-    for i in range(len(q)):
+    qn = numpy.asarray( [q,]*len(q) ) + delta_q*numpy.identity(len(q))
+    qp = numpy.asarray( [q,]*len(q) ) - delta_q*numpy.identity(len(q))
+    for i in range(len(q)):#Calcula cada columna del jacobiano
         J[:,i] = (forward_kinematics(qn[i],T, W) - forward_kinematics(qp[i], T,W)) / (delta_q*2.0)
+
     return J
 
 def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7), max_iter=20):
     pd = numpy.asarray([x,y,z,roll,pitch,yaw])
-    #
-    # TODO:
-    # Solve the IK problem given a kinematic description (Ti, Wi) and a desired configuration.
-    # where:
-    # Ti are the Homogeneous Transformations from frame i to frame i-1 when joint i is at zero position
-    # Wi are the axis of rotation of i-th joint
-    # Use the Newton-Raphson method for root finding. (Find the roots of equation FK(q) - pd = 0)
-    # You can do the following steps:
-    #
-    #    Set an initial guess for joints 'q'
-    #    Calculate Forward Kinematics 'p' by calling the corresponding function
-    #    Calcualte error = p - pd
-    #    Ensure orientation angles of error are in [-pi,pi]
-    #    WHILE |error| > TOL and iterations < maximum iterations:
-    #        Calculate Jacobian
-    #        Update q estimation with q = q - pseudo_inverse(J)*error
-    #        Ensure all angles q are in [-pi,pi]
-    #        Recalculate forward kinematics p
-    #        Recalculate error and ensure angles are in [-pi,pi]
-    #        Increment iterations
-    #    Set success if maximum iterations were not exceeded and calculated angles are in valid range
-    #    Return calculated success and calculated q
-    #
-    tol = 0.001
+   
     q = init_guess
     p = forward_kinematics(q, T, W)
-    e = p - pd
-    e[3:6] = (e[3:6] + math.pi)%(2 * math.pi) - math.pi
     iterations = 0
-    while numpy.linalg.norm(e) > tol and iterations < max_iter:
+    tolerance = 0.001
+    err = p - pd
+    err[3:6] = (err[3:6] + math.pi)%(2*math.pi) - math.pi
+    iterations = 0
+    while numpy.linalg.norm(err) > tolerance and iterations < max_iter:
         J = jacobian(q, T, W)
-        q = (q -  numpy.dot(numpy.linalg.pinv(J),e) + math.pi)%(2 * math.pi) - math.pi
+        q = (q -  numpy.dot(numpy.linalg.pinv(J),err) + math.pi)%(2*math.pi) - math.pi
         p = forward_kinematics(q, T, W)
-        e = p - pd
-        e[3:6] = (e[3:6] + math.pi)%(2 * math.pi) - math.pi
+        err = p - pd
+        err[3:6] = (err[3:6] + math.pi)%(2*math.pi) - math.pi
         iterations += 1
     success = iterations < max_iter and angles_in_joint_limits(q)
     
+    print("Iterations: ", iterations)
     return success, q
    
 def get_polynomial_trajectory_multi_dof(Q_start, Q_end, duration=1.0, time_step=0.05):
@@ -218,11 +198,12 @@ def callback_ik_for_pose(req):
     print(prompt+"Calculating inverse kinematics for pose: " + str([x,y,z,R,P,Y]))
     if len(req.initial_guess) <= 0 or req.initial_guess == None:
         init_guess = rospy.wait_for_message("/hardware/arm/current_pose", Float64MultiArray, 5.0)
-        init_guess = initial_guess.data
+        init_guess = init_guess.data
     else:
         init_guess = req.initial_guess
     resp = InverseKinematicsPose2PoseResponse()
-    success, q = inverse_kinematics(x, y, z, R, P, Y, init_guess, max_iterations)
+    W = [joints[i].axis for i in range(len(joints))]
+    success, q = inverse_kinematics(x, y, z, R, P, Y, transforms, W, init_guess, max_iterations)
     if not success:
         return False
     resp.q = q
