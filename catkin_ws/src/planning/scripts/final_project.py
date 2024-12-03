@@ -321,7 +321,7 @@ def main():
                 print("Moving head ")
                 move_head(0, -0.8)
                 current_state = SM_FIND_OBJECT
-            elif current_state == SM_PARSE_CMD
+            elif current_state == SM_PARSE_CMD:
                 obj, loc_name, [goal_x, goal_y] = parse_command(recognized_speech)
                 print("Requested obj: ",obj, "Requested loc: ", loc_name)
                 say("Im going to take the "+ obj + "to the",+loc_name)
@@ -330,7 +330,10 @@ def main():
                 print("Trying to fing ", obj)
                 x,y,z = find_object(obj)
                 print("Object ", obj, "found at ", [x,y,z],"wrt camera")
-                x,y,z = transform_point(x,y,z)
+                x,y,z = transform_point(x,y,z, source_frame="realsense_link", target_frame="base_link")
+                print("Object ", obj, " found at", [x,y,z], "wrt base")
+                x,y,z = transform_point(x,y,z, source_frame="base_link", target_frame= "shoulders_left_link")
+                print("Object ",obj, "found at ", [x,y,z], "wrt left arm")
         
         #
         # Write here your AFSM
