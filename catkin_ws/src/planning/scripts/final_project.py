@@ -307,9 +307,10 @@ def main():
     SM_PARSE_CMD = 30
     SM_FIND_OBJECT = 40
     SM_LEFT_PREPARE = 50
-    SM_TAKE_PRINGLES = 60
-    SM_CLOSING_GRIP = 70
-    SM_GO_TO_GOAL = 80
+    SM_KINEMATIC = 60
+    SM_TAKE_PRINGLES = 70
+    SM_CLOSING_GRIP = 80
+    SM_GO_TO_GOAL = 90
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
@@ -351,21 +352,27 @@ def main():
             print("Object", obj, "found at ", [x, y, z], "left arm")
             current_state = SM_LEFT_PREPARE
         elif current_state == SM_LEFT_PREPARE:
+            print("Moving the left arm close to de object")
             move_left_arm(-0.2,0,0,0,0,0,0)
             move_left_arm(-0.2,0.2,0,1.9,0,0,0)
             move_left_arm(0.2,0.2,-0.1,1.9,0.1,0,0.2)
-            print("Moving the left arm close to de object")
             move_left_gripper(1.0)
-            current_state = SM_TAKE_PRINGLES
-        elif current_state == SM_TAKE_PRINGLES:
+            current_state = SM_KINEMATIC
+        elif current_state == SM_KINEMATIC:
+            print("calculating the inverse kinematic")
             roll, pitch, yaw = 0,-1.5,0
-            movement = calculate_inverse_kinematics_left(x, y, z, roll, pitch, yaw)
+            movement = calculate_inverse_kinematics_left(x, y, z, roll, pitch, yaw)       
+            current_state = SM_TAKE_PRINGLES     
+        elif current_state == SM_TAKE_PRINGLES:
             move_left_arm_with_trajectory(movement)
-            print("Taking the pringles with the left arm using the inverse kinematic")
+            print("Moving the arm to the pringles")
+            time.sleep(2.0)
+            print("Arm goal reached")
             current_state = SM_CLOSING_GRIP
         elif current_state == SM_CLOSING_GRIP:
-            move_left_gripper(0.3)
-            curent_state = SM_GO_TO_GOAL
+            move_left_gripper(-0.5)
+            print("Grip closed")
+            current_state = SM_GO_TO_GOAL
         elif current_state == SM_GO_TO_GOAL: 
             go_to_goal_pose(goal_x,goal_y)
             print("Moving the robot to the goal")
