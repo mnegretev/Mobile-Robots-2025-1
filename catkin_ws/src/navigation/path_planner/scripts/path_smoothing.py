@@ -45,7 +45,7 @@ def smooth_path(Q, alpha, beta, max_steps):
 
 def callback_smooth_path(req):
     global msg_smooth_path
-    alpha =  0.9
+    alpha =  1
     beta  =  0.1 
     steps =  10000
     print("Smoothing path with params: " + str([alpha,beta,steps]))

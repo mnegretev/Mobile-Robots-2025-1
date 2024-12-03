@@ -313,6 +313,7 @@ def main():
     SM_GO_TO_GOAL = 90
     SM_THROW_OBJECT = 100
     SM_BACK_ORIGIN = 110
+    SM_TABLE = 120
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
@@ -330,7 +331,6 @@ def main():
                 current_state = SM_PARSE_CMD
                 
                 
-                
         elif current_state == SM_PARSE_CMD:
             obj, [goal_x, goal_y] = parse_command(recognized_speech)
             if goal_x == 8.4 and goal_y == 8.4:
@@ -341,15 +341,13 @@ def main():
                 loc_name = "unknown location"
             print("Requested obj: " , obj , "Requested loc: " , loc_name)
             say("I'm going to take the " + obj + "to the " + loc_name)
-            current_state = SM_MOVE_HEAD 
-            
+            current_state = SM_MOVE_HEAD
             
             
         elif current_state == SM_MOVE_HEAD:
             print ("Moving head")
             move_head(0,-0.8)
             current_state = SM_FIND_OBJECT
-            
             
        
         elif current_state == SM_FIND_OBJECT:
@@ -364,8 +362,9 @@ def main():
             elif obj == "drink":
                 x,y,z = transform_point(x, y, z, source_frame="base_link", target_frame = "shoulders_right_link")
                 print("Object", obj, "found at ", [x, y, z], "right arm")
-            
             current_state = SM_LEFT_PREPARE
+            
+            
         elif current_state == SM_LEFT_PREPARE:
             if obj == "pringles":
                 print("Moving the left arm close to de object")
@@ -375,15 +374,14 @@ def main():
                 move_left_gripper(0.5)
             elif obj == "drink":
                 print("Moving the right arm close to de object")
-                move_right_arm(-0.8,0,0,0,0,0,0)
-                move_right_arm(-0.6,-0.3,0,2.5,0,0,0)
+                move_right_arm(-0.1,0,0,0,0,0,0)
+                move_right_arm(-0.1,-0.3,0,2.5,0,0,0)
                 move_right_gripper(0.5)
                 move_right_arm(0.3,-0.2,0.4,1.7,0,0,-.2)
                 move_base(0.2, 0, 1)
-                
-                
-                
             current_state = SM_KINEMATIC
+            
+            
         elif current_state == SM_KINEMATIC:
             print("calculating the inverse kinematic")
             
@@ -393,8 +391,9 @@ def main():
             elif obj == "drink":
                 roll, pitch, yaw = 0,-1.5,0
                 movement = calculate_inverse_kinematics_right(x, y, z, roll, pitch, yaw)
+            current_state = SM_TAKE_PRINGLES
+            
                  
-            current_state = SM_TAKE_PRINGLES     
         elif current_state == SM_TAKE_PRINGLES:
             if obj == "pringles":
                 move_left_arm_with_trajectory(movement)
@@ -440,20 +439,24 @@ def main():
             move_left_gripper(0)
             move_base(-0.2, 0, 2)
             current_state = SM_BACK_ORIGIN
+            
+            
         elif current_state == SM_BACK_ORIGIN: 
             print("Geting back to the origin")
             move_left_arm(0,0,0,0,0,0,0)
             move_right_arm(0,0,0,0,0,0,0)
-            if loc_name == "kitchen":
-                go_to_goal_pose(3.3, 6)
-                if goal_reached:
-                    go_to_goal_pose(3.3, 5.7)
-                    move_base(0, 0.2, 2)
-
-            else:    
-                go_to_goal_pose(3.3, 7)
-            
-            time.sleep(5.0)
+            go_to_goal_pose(3.3, 7)
+            if goal_reached:
+                current_state = SM_TABLE
+                
+                
+        elif current_state == SM_TABLE: 
+            go_to_goal_pose(3.3, 5.7)
+            if goal_reached:
+                move_base(0, -1, 2)
+                current_state = SM_WAITING_FOR_NEW_TASK
+                time.sleep(2.0)
+           
             
             if goal_reached: 
                 print("ready to pick another object")
