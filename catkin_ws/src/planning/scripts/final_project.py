@@ -53,7 +53,7 @@ def callback_goal_reached(msg):
 
 def parse_command(cmd):
     obj = "pringles" if "PRINGLES" in cmd else "drink"
-    loc = [8.0,8.5] if "TABLE" in cmd else [3.22, 9.72]
+    loc = [9.2,4.26] if "TABLE" in cmd else [6, 9.2]
     return obj, loc
 
 #
@@ -311,6 +311,8 @@ def main():
     SM_TAKE_PRINGLES = 70
     SM_CLOSING_GRIP = 80
     SM_GO_TO_GOAL = 90
+    SM_THROW_OBJECT = 100
+    SM_BACK_ORIGIN = 110
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
@@ -328,9 +330,9 @@ def main():
                 current_state = SM_PARSE_CMD
         elif current_state == SM_PARSE_CMD:
             obj, [goal_x, goal_y] = parse_command(recognized_speech)
-            if goal_x == 8.0 and goal_y == 8.5:
+            if goal_x == 9.2 and goal_y == 4.26:
                 loc_name = "table"
-            elif goal_x == 3.22 and goal_y == 9.72:
+            elif goal_x == 6 and goal_y == 9.2:
                 loc_name = "kitchen"
             else:
                 loc_name = "unknown location"
@@ -356,7 +358,7 @@ def main():
             move_left_arm(-0.2,0,0,0,0,0,0)
             move_left_arm(-0.2,0.2,0,1.9,0,0,0)
             move_left_arm(0.2,0.2,-0.1,1.9,0.1,0,0.2)
-            move_left_gripper(1.0)
+            move_left_gripper(0.5)
             current_state = SM_KINEMATIC
         elif current_state == SM_KINEMATIC:
             print("calculating the inverse kinematic")
@@ -370,13 +372,28 @@ def main():
             print("Arm goal reached")
             current_state = SM_CLOSING_GRIP
         elif current_state == SM_CLOSING_GRIP:
-            move_left_gripper(-0.5)
+            move_left_gripper(-1)
             print("Grip closed")
+            move_left_arm(0.0,0.2,-0.1,1.9,0.1,0,0.2)
             current_state = SM_GO_TO_GOAL
         elif current_state == SM_GO_TO_GOAL: 
+            move_base(-0.05, 0, 2)
             go_to_goal_pose(goal_x,goal_y)
             print("Moving the robot to the goal")
-            new_task=True
+            if goal_reached:
+                current_state = SM_THROW_OBJECT
+        elif current_state == SM_THROW_OBJECT:
+            print("Throwing the object")
+            move_left_gripper(0)
+            current_state = SM_BACK_ORIGIN
+        elif current_state == SM_BACK_ORIGIN: 
+            print("Geting back to the origin")
+            move_left_arm(0,0,0,0,0,0,0)
+            go_to_goal_pose(3.21, 5.7)
+            time.sleep(5.0)
+            move_base(0, 0.2, 2)
+            print("ready to pick another object")
+            current_state = SM_WAITING_FOR_NEW_TASK
             
         
         
