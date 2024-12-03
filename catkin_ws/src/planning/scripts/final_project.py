@@ -351,7 +351,7 @@ def main():
         elif current_state == SM_LEFT_PREPARE:
             move_left_arm(-0.2,0,0,0,0,0,0)
             move_left_arm(-0.2,0.2,0,1.9,0,0,0)
-            move_left_arm(0.1,0.6,-0.1,1.9,0,0,0)
+            move_left_arm(0.2,0.7,-0.1,1.9,0.4,0,0.2)
             print("Moving the left arm close to de object")
             current_state = SM_TAKE_PRINGLES
         elif current_state == SM_TAKE_PRINGLES:
