@@ -37,7 +37,7 @@ def smooth_path(Q, alpha, beta, max_steps):
     while numpy.linalg.norm(nabla) > tol and steps < max_steps:
         nabla = numpy.zeros_like(Q)
         for i in range (1, len(Q)-1):
-            nabla[i]=alpha*(2*P[i]-P[i-1]-P[i+1])+ beta*(2*Q[i]-Q[i-1]-Q[i+1])
+            nabla[i]=alpha*(2*P[i]-P[i-1]-P[i+1])+ beta*(P[i]-Q[i])
         P= P-epsilon*nabla
         steps+=1
         
@@ -45,9 +45,9 @@ def smooth_path(Q, alpha, beta, max_steps):
 
 def callback_smooth_path(req):
     global msg_smooth_path
-    alpha = rospy.get_param('~alpha', 0.9)
-    beta  = rospy.get_param('~beta', 0.1 )
-    steps = rospy.get_param('~steps', 10000)
+    alpha =  0.9
+    beta  =  0.1 
+    steps =  10000
     print("Smoothing path with params: " + str([alpha,beta,steps]))
     start_time = rospy.Time.now()
     P = smooth_path(numpy.asarray([[p.pose.position.x, p.pose.position.y] for p in req.path.poses]), alpha, beta, steps)

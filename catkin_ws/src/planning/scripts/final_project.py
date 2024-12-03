@@ -53,7 +53,7 @@ def callback_goal_reached(msg):
 
 def parse_command(cmd):
     obj = "pringles" if "PRINGLES" in cmd else "drink"
-    loc = [9.2,4.26] if "TABLE" in cmd else [6, 9.2]
+    loc = [8.4,8.4] if "TABLE" in cmd else [5.5, 9.6]
     return obj, loc
 
 #
@@ -328,21 +328,29 @@ def main():
                 print("New task received: ", recognized_speech)
                 new_task = False
                 current_state = SM_PARSE_CMD
+                
+                
+                
         elif current_state == SM_PARSE_CMD:
             obj, [goal_x, goal_y] = parse_command(recognized_speech)
-            if goal_x == 9.2 and goal_y == 4.26:
+            if goal_x == 8.4 and goal_y == 8.4:
                 loc_name = "table"
-            elif goal_x == 6 and goal_y == 9.2:
+            elif goal_x == 5.5 and goal_y == 9.6:
                 loc_name = "kitchen"
             else:
                 loc_name = "unknown location"
             print("Requested obj: " , obj , "Requested loc: " , loc_name)
             say("I'm going to take the " + obj + "to the " + loc_name)
             current_state = SM_MOVE_HEAD 
+            
+            
+            
         elif current_state == SM_MOVE_HEAD:
             print ("Moving head")
             move_head(0,-0.8)
             current_state = SM_FIND_OBJECT
+            
+            
        
         elif current_state == SM_FIND_OBJECT:
             print("Trying to find", obj)
@@ -350,50 +358,106 @@ def main():
             print("Object", obj, "found at ", [x, y, z], "wrt camera")
             x,y,z = transform_point(x, y, z, source_frame="realsense_link", target_frame = "base_link")
             print("Object", obj, "found at ", [x, y, z], "wrt base")
-            x,y,z = transform_point(x, y, z, source_frame="base_link", target_frame = "shoulders_left_link")
-            print("Object", obj, "found at ", [x, y, z], "left arm")
+            if obj == "pringles":
+                x,y,z = transform_point(x, y, z, source_frame="base_link", target_frame = "shoulders_left_link")
+                print("Object", obj, "found at ", [x, y, z], "left arm")
+            elif obj == "drink":
+                x,y,z = transform_point(x, y, z, source_frame="base_link", target_frame = "shoulders_right_link")
+                print("Object", obj, "found at ", [x, y, z], "right arm")
+            
             current_state = SM_LEFT_PREPARE
         elif current_state == SM_LEFT_PREPARE:
-            print("Moving the left arm close to de object")
-            move_left_arm(-0.2,0,0,0,0,0,0)
-            move_left_arm(-0.2,0.2,0,1.9,0,0,0)
-            move_left_arm(0.2,0.2,-0.1,1.9,0.1,0,0.2)
-            move_left_gripper(0.5)
+            if obj == "pringles":
+                print("Moving the left arm close to de object")
+                move_left_arm(-0.2,0,0,0,0,0,0)
+                move_left_arm(-0.2,0.2,0,1.9,0,0,0)
+                move_left_arm(0.2,0.2,-0.1,1.9,0.1,0,0.2)
+                move_left_gripper(0.5)
+            elif obj == "drink":
+                print("Moving the right arm close to de object")
+                move_right_arm(-0.8,0,0,0,0,0,0)
+                move_right_arm(-0.6,-0.3,0,2.5,0,0,0)
+                move_right_gripper(0.5)
+                move_right_arm(0.3,-0.2,0.4,1.7,0,0,-.2)
+                move_base(0.2, 0, 1)
+                
+                
+                
             current_state = SM_KINEMATIC
         elif current_state == SM_KINEMATIC:
             print("calculating the inverse kinematic")
-            roll, pitch, yaw = 0,-1.5,0
-            movement = calculate_inverse_kinematics_left(x, y, z, roll, pitch, yaw)       
+            
+            if obj == "pringles":
+                roll, pitch, yaw = 0,-1.5,0
+                movement = calculate_inverse_kinematics_left(x, y, z, roll, pitch, yaw)  
+            elif obj == "drink":
+                roll, pitch, yaw = 0,-1.5,0
+                movement = calculate_inverse_kinematics_right(x, y, z, roll, pitch, yaw)
+                 
             current_state = SM_TAKE_PRINGLES     
         elif current_state == SM_TAKE_PRINGLES:
-            move_left_arm_with_trajectory(movement)
-            print("Moving the arm to the pringles")
-            time.sleep(2.0)
-            print("Arm goal reached")
+            if obj == "pringles":
+                move_left_arm_with_trajectory(movement)
+                print("Moving the left arm to the pringles")
+                time.sleep(2.0)                
+                print("Left arm goal reached")
+                
+            elif obj == "drink":
+                move_right_arm_with_trajectory(movement)
+                print("Moving the right arm to the pringles")
+                time.sleep(2.0)            
             current_state = SM_CLOSING_GRIP
+        
+        
         elif current_state == SM_CLOSING_GRIP:
-            move_left_gripper(-1)
-            print("Grip closed")
-            move_left_arm(0.0,0.2,-0.1,1.9,0.1,0,0.2)
+            if obj == "pringles":
+                move_left_gripper(-1)
+                print("Grip closed")
+                move_left_arm(0.0,0.2,-0.1,1.9,0.1,0,0.2)   
+            elif obj == "drink":
+                move_left_gripper(-1)
+                print("Grip closed")
+                move_right_arm(0.3,-0,0,1.7,0,0,-.2)
             current_state = SM_GO_TO_GOAL
+            
+            
         elif current_state == SM_GO_TO_GOAL: 
-            move_base(-0.05, 0, 2)
-            go_to_goal_pose(goal_x,goal_y)
-            print("Moving the robot to the goal")
-            if goal_reached:
-                current_state = SM_THROW_OBJECT
+            move_base(-0.2, 0, 2)
+            if loc_name == "table":
+                go_to_goal_pose(8.4,8.4)
+                print("Moving the robot to the table")
+                if goal_reached:
+                    current_state = SM_THROW_OBJECT
+            elif loc_name == "kitchen":
+                go_to_goal_pose(5.5,9.6)
+                print("Moving the robot to the kitchen")
+                if goal_reached:
+                    current_state = SM_THROW_OBJECT    
+                
+                
         elif current_state == SM_THROW_OBJECT:
             print("Throwing the object")
             move_left_gripper(0)
+            move_base(-0.2, 0, 2)
             current_state = SM_BACK_ORIGIN
         elif current_state == SM_BACK_ORIGIN: 
             print("Geting back to the origin")
             move_left_arm(0,0,0,0,0,0,0)
-            go_to_goal_pose(3.21, 5.7)
+            move_right_arm(0,0,0,0,0,0,0)
+            if loc_name == "kitchen":
+                go_to_goal_pose(3.3, 6)
+                if goal_reached:
+                    go_to_goal_pose(3.3, 5.7)
+                    move_base(0, 0.2, 2)
+
+            else:    
+                go_to_goal_pose(3.3, 7)
+            
             time.sleep(5.0)
-            move_base(0, 0.2, 2)
-            print("ready to pick another object")
-            current_state = SM_WAITING_FOR_NEW_TASK
+            
+            if goal_reached: 
+                print("ready to pick another object")
+                current_state = SM_WAITING_FOR_NEW_TASK
             
         
         
