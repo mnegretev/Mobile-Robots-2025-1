@@ -305,6 +305,9 @@ def main():
     SM_WAITING_FOR_NEW_TASK = 10
     SM_MOVE_HEAD=20
     SM_PARSE_CMD = 30
+    SM_FIND_OBJECT = 40
+    SM_LEFT_PREPARE = 50
+    SM_TAKE_PRINGLES = 60
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
@@ -320,15 +323,22 @@ def main():
                 print("New task received: ", recognized_speech)
                 new_task = False
                 current_state = SM_PARSE_CMD
+        elif current_state == SM_PARSE_CMD:
+            obj, [goal_x, goal_y] = parse_command(recognized_speech)
+            if goal_x == 8.0 and goal_y == 8.5:
+                loc_name = "table"
+            elif goal_x == 3.22 and goal_y == 9.72:
+                loc_name = "kitchen"
+            else:
+                loc_name = "unknown location"
+            print("Requested obj: " , obj , "Requested loc: " , loc_name)
+            say("I'm going to take the " + obj + "to the " + loc_name)
+            current_state = SM_MOVE_HEAD 
         elif current_state == SM_MOVE_HEAD:
             print ("Moving head")
             move_head(0,-0.8)
             current_state = SM_FIND_OBJECT
-        elif current_state == SM_PARSE_CMD:
-            obj, [goal_x, goal_y] = parse_command(recognized_speech)
-            print("Requested obj: " , obj , "Requested loc: " , loc_name)
-            say("I'm going to take the " + obj + "to the " + loc_name)
-            current_state = SM_MOVE_HEAD        
+       
         elif current_state == SM_FIND_OBJECT:
             print("Trying to find", obj)
             x,y,z = find_object(obj)
@@ -336,7 +346,19 @@ def main():
             x,y,z = transform_point(x, y, z, source_frame="realsense_link", target_frame = "base_link")
             print("Object", obj, "found at ", [x, y, z], "wrt base")
             x,y,z = transform_point(x, y, z, source_frame="base_link", target_frame = "shoulders_left_link")
-        
+            print("Object", obj, "found at ", [x, y, z], "left arm")
+            current_state = SM_LEFT_PREPARE
+        elif current_state == SM_LEFT_PREPARE:
+            move_left_arm(-0.2,0,0,0,0,0,0)
+            move_left_arm(-0.2,0.2,0,1.9,0,0,0)
+            move_left_arm(0.1,0.6,-0.1,1.9,0,0,0)
+            print("Moving the left arm close to de object")
+            current_state = SM_TAKE_PRINGLES
+        elif current_state == SM_TAKE_PRINGLES:
+            roll, pitch, yaw = 0,0,0
+            calculate_inverse_kinematics_left(x, y, z, roll, pitch, yaw)
+            move_left_arm_with_trajectory(resp.articular_trajectory)
+            print("Taking the pringles with the left arm using the inverse kinematic")
         
         
         
