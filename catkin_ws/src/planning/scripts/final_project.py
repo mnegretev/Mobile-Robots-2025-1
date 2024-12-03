@@ -35,6 +35,8 @@ NAME = "Aguilar Saracho Mauricio"
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
 #
+
+
 def callback_recognized_speech(msg):
     global recognized_speech, new_task, executing_task
     if executing_task:
@@ -276,6 +278,7 @@ def main():
     global pubLaGoalPose, pubRaGoalPose, pubHdGoalPose, pubLaGoalGrip, pubRaGoalGrip
     global pubLaGoalTraj, pubRaGoalTraj, pubGoalPose, pubCmdVel, pubSay
     print("FINAL PROJECT - " + NAME)
+    executing_task = False
     rospy.init_node("final_project")
     rospy.Subscriber('/hri/sp_rec/recognized', RecognizedSpeech, callback_recognized_speech)
     rospy.Subscriber('/navigation/goal_reached', Bool, callback_goal_reached)
@@ -303,7 +306,7 @@ def main():
     SM_INIT = 0
     SM_WAITING_FOR_NEW_TASK=10
         
-    executing_task = False
+    
     current_state = "SM_INIT"
     new_task = False
     goal_reached = False

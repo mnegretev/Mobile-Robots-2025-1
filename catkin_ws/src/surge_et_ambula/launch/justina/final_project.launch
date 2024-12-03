@@ -54,5 +54,6 @@
   </node>
   <node name="hsv_segmentation" pkg="color_segmentation" type="hsv_segmentation.py" output="screen"/>
   <include file="$(find surge_et_ambula)/launch/justina/manipulation.launch"/>
-  <!--<include file="$(find surge_et_ambula)/launch/justina/hri.launch"/>-->
+  <!-- <include file="$(find surge_et_ambula)/launch/justina/hri.launch"/>  -->
+
 </launch>
