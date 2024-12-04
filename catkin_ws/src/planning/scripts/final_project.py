@@ -314,6 +314,7 @@ def main():
     SM_THROW_OBJECT = 100
     SM_BACK_ORIGIN = 110
     SM_TABLE = 120
+    SM_READY_AGAIN = 130
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
@@ -378,7 +379,7 @@ def main():
                 move_right_arm(-0.1,-0.3,0,2.5,0,0,0)
                 move_right_gripper(0.5)
                 move_right_arm(0.3,-0.2,0.4,1.7,0,0,-.2)
-                move_base(0.2, 0, 1)
+                move_right_arm(0.3,-0.2,0.4,1.5,0,0,-.2)
             current_state = SM_KINEMATIC
             
             
@@ -453,12 +454,12 @@ def main():
         elif current_state == SM_TABLE: 
             go_to_goal_pose(3.3, 5.7)
             if goal_reached:
+                current_state = SM_READY_AGAIN
+        
+        
+        elif current_state == SM_READY_AGAIN: 
                 move_base(0, -1, 2)
-                current_state = SM_WAITING_FOR_NEW_TASK
-                time.sleep(2.0)
-           
-            
-            if goal_reached: 
+                time.sleep(2.0) 
                 print("ready to pick another object")
                 current_state = SM_WAITING_FOR_NEW_TASK
             
