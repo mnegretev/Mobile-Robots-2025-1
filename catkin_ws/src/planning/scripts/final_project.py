@@ -415,7 +415,7 @@ def main():
                 print("Grip closed")
                 move_left_arm(0.0,0.2,-0.1,1.9,0.1,0,0.2)   
             elif obj == "drink":
-                move_left_gripper(-1)
+                move_right_gripper(-1)
                 print("Grip closed")
                 move_right_arm(0.3,-0,0,1.7,0,0,-.2)
             current_state = SM_GO_TO_GOAL
@@ -438,6 +438,7 @@ def main():
         elif current_state == SM_THROW_OBJECT:
             print("Throwing the object")
             move_left_gripper(0)
+            move_right_gripper(0)
             move_base(-0.2, 0, 2)
             current_state = SM_BACK_ORIGIN
             
