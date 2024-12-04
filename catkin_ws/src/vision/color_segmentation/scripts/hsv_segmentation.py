@@ -20,7 +20,7 @@ from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import PointStamped, Point
 from vision_msgs.srv import RecognizeObject, RecognizeObjectResponse
 
-NAME = "PIZANO BRAVO ALEXIS"
+NAME = "Pizano Bravo Alexis"
 
 def segment_by_color(img_bgr, points, obj_name):
     img_x, img_y, x,y,z = 0,0,0,0,0
@@ -48,7 +48,7 @@ def segment_by_color(img_bgr, points, obj_name):
         upperLim = (18, 255, 200)
         lowerLim = (15, 150, 150)
     else:
-        print("OBJECT NOT FOUND")
+        print("Objeto no reconocido")
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lowerLim, upperLim)
     test1 = mask
@@ -76,9 +76,13 @@ def segment_by_color(img_bgr, points, obj_name):
     img_center = cv2.mean(idx)
     print("XYZ: ", mean)
     print("IMG: ", img_center)
+    img_x = img_center[0]
+    img_y = img_center[1]
+    x = mean[0]
+    y = mean[1]
+    z = mean[2]
 
-    return [img_center[0], img_center[1], mean[0], mean[1], mean[2]]
-    #return [img_x, img_y, x,y,z]
+    return [img_x, img_y, x,y,z]
 
 def callback_find_object(req):
     global pub_point, img_bgr, mask, test1, test2
