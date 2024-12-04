@@ -35,8 +35,6 @@ NAME = "Aguilar Saracho Mauricio"
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
 #
-
-
 def callback_recognized_speech(msg):
     global recognized_speech, new_task, executing_task
     if executing_task:
@@ -55,7 +53,7 @@ def callback_goal_reached(msg):
 
 def parse_command(cmd):
     obj = "pringles" if "PRINGLES" in cmd else "drink"
-    loc = [8.0,8.5] if "TABLE" in cmd else [3.22, 9.72]
+    loc = [10.5,-1.39] if "TABLE" in cmd else [3.53, 8.46] 
     return obj, loc
 
 #
@@ -278,7 +276,7 @@ def main():
     global pubLaGoalPose, pubRaGoalPose, pubHdGoalPose, pubLaGoalGrip, pubRaGoalGrip
     global pubLaGoalTraj, pubRaGoalTraj, pubGoalPose, pubCmdVel, pubSay
     print("FINAL PROJECT - " + NAME)
-    executing_task = False
+    executing_task = False#
     rospy.init_node("final_project")
     rospy.Subscriber('/hri/sp_rec/recognized', RecognizedSpeech, callback_recognized_speech)
     rospy.Subscriber('/navigation/goal_reached', Bool, callback_goal_reached)
@@ -302,46 +300,79 @@ def main():
 
     #
     # FINAL PROJECT 
-    #   
-    SM_INIT = 0
-    SM_WAITING_FOR_NEW_TASK=10
-        
+    #
     
-    current_state = "SM_INIT"
-    new_task = False
-    goal_reached = False
-    
-    while not rospy.is_shutdown():
-        if current_state == SM_INIT:
-            print("SM Initialized")
-            current_state = SM_WAITING_FOR_NEW_TASK
-        elif current_state == SM_WAITING_FOR_NEW_TASK:
-            if new_task:
-                print("New task received: ",recognized_speech)
-                new_task= False
-                current_state = SM_MOVE_CMD
-            elif current_state == SM_MOVE_HEAD:
-                print("Moving head ")
-                move_head(0, -0.8)
-                current_state = SM_FIND_OBJECT
-            elif current_state == SM_PARSE_CMD:
-                obj, loc_name, [goal_x, goal_y] = parse_command(recognized_speech)
-                print("Requested obj: ",obj, "Requested loc: ", loc_name)
-                say("Im going to take the "+ obj + "to the",+loc_name)
-                current_state = SM_MAVE_HEAD
-            elif current_state == SM_FIND_OBJECT:
-                print("Trying to fing ", obj)
-                x,y,z = find_object(obj)
-                print("Object ", obj, "found at ", [x,y,z],"wrt camera")
-                x,y,z = transform_point(x,y,z, source_frame="realsense_link", target_frame="base_link")
-                print("Object ", obj, " found at", [x,y,z], "wrt base")
-                x,y,z = transform_point(x,y,z, source_frame="base_link", target_frame= "shoulders_left_link")
-                print("Object ",obj, "found at ", [x,y,z], "wrt left arm")
-        
-        #
-        # Write here your AFSM
-        #
-        loop.sleep()
+    SM_INIT = 0 #Estado de inicio del programa
+    SM_WAITING_FOR_NEW_TASK = 10#Estado para esperar por alguna orden
+    SM_PARSE_CMD = 20#Estado para el comando de estado
+    SM_MOVE_HEAD=30#Estado para mover la camara
+    SM_FIND_OBJECT = 40#Estado para encontrar el objeto
+    SM_READY_ARM_LEFT = 50###Estado para preparar el brazo derecho
+    SM_INVERSE_KINEMATIC = 60#Estado para la cinematica inversa
+    SM_PRINGLES = 70#Estado de agarre de las pringles
+    SM_GRIP_END = 80#Variable para el estado de agarre del organo terminal
+    current_state = "SM_INIT"#
+    new_task = False#
+    goal_reached = False#
+    while not rospy.is_shutdown():#
+        # MY AFSM
+        if current_state=="SM_INIT":#
+            print("SM Initialized")#
+            current_state=SM_WAITING_FOR_NEW_TASK#
+        elif current_state==SM_WAITING_FOR_NEW_TASK:#
+            if new_task:#
+                print("New task received: ", recognized_speech)#
+                new_task=False#
+                current_state=SM_PARSE_CMD#
+        elif current_state==SM_PARSE_CMD:#Maquina de estados del comando 
+            obj, [goal_x, goal_y] = parse_command(recognized_speech)#
+            if goal_x==10.5 and goal_y == -1.39:#Modificar los valores en el Rvis
+                loc_name="Table"
+            elif goal_x==3.53 and goal_y == 8.46:
+                loc_name="Kitchen"
+            else:
+                loc_name="UNIDENTIFIED POSITION"
+            print("Requested obj: " , obj , "Requested loc: " , loc_name)#
+            say("I'm going to take the " + obj + "to the " + loc_name)#
+            current_state=SM_MOVE_HEAD #
+        elif current_state==SM_MOVE_HEAD:#
+            print ("Moving head")#
+            move_head(0,-0.8)#
+            current_state=SM_FIND_OBJECT#
+       
+        elif current_state==SM_FIND_OBJECT:#
+            print("Trying to find", obj)#
+            x,y,z = find_object(obj)#
+            print("Object", obj,"found at ",[x,y,z], "wrt camera")#
+            x,y,z = transform_point(x, y, z, source_frame="realsense_link", target_frame = "base_link")#
+            print("Object", obj,"found at ",[x,y,z], "wrt base")#
+            x,y,z = transform_point(x, y, z, source_frame="base_link", target_frame = "shoulders_left_link")#
+            print("Object", obj,"found at ",[x,y,z], "wrt left arm")#
+            current_state=SM_READY_ARM_LEFT#
+        elif current_state==SM_READY_ARM_LEFT:#
+            print("Bringing the left arm closer to the object")
+            move_left_arm(-0.0433,-0.0002,0.0002,0.0402,-0.0002,0.0062,0)
+            move_left_arm(-0.1,0.0002,0.0002,2.0,-0.0002,0.0062,0)
+            move_left_arm(-0,0.0002,0.0002,2.0,-0.0002,0.0062,0)
+            move_left_arm(0.1,0.0002,0.0002,2.0,-0.0002,0.0062,0)
+            move_left_gripper(0.5)
+            move_base(0.3, 0.2, 1)
+            current_state=SM_INVERSE_KINEMATIC#
+        elif current_state==SM_INVERSE_KINEMATIC:#
+            print("Inverse kinematic")
+            roll, pitch, yaw = 0,-1.4,0#
+            movement=calculate_inverse_kinematics_left(x, y, z, roll, pitch, yaw)#       
+            current_state=SM_PRINGLES#     
+        elif current_state==SM_PRINGLES:#
+            move_left_arm_with_trajectory(movement)
+            print("Positioning the arm near the pringles")
+            time.sleep(1.0)
+            print("Arm position reached")
+            current_state=SM_GRIP_END
+        elif current_state==SM_GRIP_END:
+            move_left_gripper(-1)
+            print("Grip END")
+        loop.sleep()#
 
 if __name__ == '__main__':
     main()
