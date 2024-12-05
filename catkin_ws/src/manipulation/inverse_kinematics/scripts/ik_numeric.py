@@ -259,4 +259,5 @@ def main():
     while not rospy.is_shutdown():
         loop.sleep()
 
-if __name_
+if __name__ == '__main__':
+    main()
