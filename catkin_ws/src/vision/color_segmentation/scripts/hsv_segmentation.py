@@ -20,10 +20,9 @@ from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import PointStamped, Point
 from vision_msgs.srv import RecognizeObject, RecognizeObjectResponse
 
-NAME = "Larios Avila Armando"
+NAME = "Torres ANguiano Azael Arturo "
 
 def segment_by_color(img_bgr, points, obj_name):
-    global mask, test1, test2
     img_x, img_y, x,y,z = 0,0,0,0,0
     #
     # TODO:
@@ -40,10 +39,8 @@ def segment_by_color(img_bgr, points, obj_name):
     #   using the point cloud 'points'. Use numpy array notation to process the point cloud data.
     #   Example: 'points[240,320][1]' gets the 'y' value of the point corresponding to
     #   the pixel in the center of the image.
-    #
-
+    upperLim = (35, 255, 255) if obj_name == "pringles" else (18,255,200)
     lowerLim = (25, 50, 50) if obj_name == "pringles" else (15,150,150)
-    upperLim = (35, 255, 255) if obj_name == "pringles" else (20,255,200)
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lowerLim, upperLim)
     test1 = mask
@@ -73,10 +70,10 @@ def segment_by_color(img_bgr, points, obj_name):
     print("IMG: ", img_center)
 
     return [img_center[0], img_center[1], mean[0], mean[1], mean[2]]
-    # return [img_x, img_y, x,y,z]
+    #return [img_x, img_y, x,y,z]
 
 def callback_find_object(req):
-    global pub_point, img_bgr, mask, test1, test2
+    global pub_point, img_bgr
     print("Trying to find object: " + req.name)
     arr = ros_numpy.point_cloud2.pointcloud2_to_array(req.point_cloud)
     rgb_arr = arr['rgb'].copy()
@@ -97,21 +94,15 @@ def callback_find_object(req):
     return resp
 
 def main():
-    global pub_point, img_bgr, mask, test1, test2
+    global pub_point, img_bgr
     print("COLOR SEGMENTATION - " + NAME)
     rospy.init_node("color_segmentation")
     rospy.Service("/vision/obj_reco/detect_and_recognize_object", RecognizeObject, callback_find_object)
     pub_point = rospy.Publisher('/detected_object', PointStamped, queue_size=10)
     img_bgr = numpy.zeros((480, 640, 3), numpy.uint8)
-    test1 = numpy.zeros((480, 640, 3), numpy.uint8)
-    test2 = numpy.zeros((480, 640, 3), numpy.uint8)
-    mask = numpy.zeros((480, 640, 3), numpy.uint8)
     loop = rospy.Rate(10)
     while not rospy.is_shutdown():
         cv2.imshow("Color Segmentation", img_bgr)
-        cv2.imshow("Test 1", test1)
-        cv2.imshow("Test 2", test2)
-        cv2.imshow("Mask", mask)
         cv2.waitKey(1)
         loop.sleep()
     
