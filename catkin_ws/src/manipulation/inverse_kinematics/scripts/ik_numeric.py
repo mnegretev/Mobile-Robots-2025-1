@@ -165,20 +165,17 @@ def inverse_kinematics(x, y, z, roll, pitch, yaw, T, W, init_guess=numpy.zeros(7
         
         iterations += 1
         
-        # Imprimir el número de iteraciones cada 5 iteraciones para evitar exceso de impresiones
-        if iterations % 5 == 0:
-            print(f"Iteración: {iterations}, Error: {numpy.linalg.norm(error)}")
     
     # Verificar si se completó la cinemática inversa y si se están cumpliendo los límites de los ángulos
     if iterations < max_iter and angles_in_joint_limits(q):
         success = True
     
     if success:
-        print(f"Cinemática inversa completa en {iterations} iteraciones.")
+        print(f"Cinemática inversa de sub meta completa en {iterations} iteraciones.")
     else:
         print("Cinemática no completa")
     
-    return success, q
+    return success, q, iterations
 
 
    
@@ -242,24 +239,38 @@ def callback_ik_for_trajectory(req):
         initial_guess = initial_guess.data
     else:
         initial_guess = req.initial_guess
-    W = [joints[i].axis for i in range(len(joints))]  
+
+    W = [joints[i].axis for i in range(len(joints))]
     p1 = forward_kinematics(initial_guess, transforms, W)
     p2 = [req.x, req.y, req.z, req.roll, req.pitch, req.yaw]
-    t  = req.duration if req.duration > 0 else get_trajectory_time(p1, p2, 0.25)
+    t = req.duration if req.duration > 0 else get_trajectory_time(p1, p2, 0.25)
     dt = req.time_step if req.time_step > 0 else 0.05
-    X,T = get_polynomial_trajectory_multi_dof(p1, p2, duration=t, time_step=dt)
+    X, T = get_polynomial_trajectory_multi_dof(p1, p2, duration=t, time_step=dt)
+
+    total_iterations = 0  # Variable para acumular las iteraciones
+
     trj = JointTrajectory()
     trj.header.stamp = rospy.Time.now()
+
     q = initial_guess
     for i in range(len(X)):
         x, y, z, roll, pitch, yaw = X[i]
-        success, q = inverse_kinematics(x, y, z, roll, pitch, yaw, transforms, W, q, max_iterations)
-        if not success:
+        success, q, iterations = inverse_kinematics(x, y, z, roll, pitch, yaw, transforms, W, q, max_iterations)
+        
+        if not success:  # Si no se puede encontrar una solución, retorna False
+            print(f"Kinematic failed int: {total_iterations}")
             return False
+        
+        total_iterations += iterations  # Acumula el número total de iteraciones
+        
         p = JointTrajectoryPoint()
         p.positions = q
         p.time_from_start = rospy.Duration.from_sec(T[i])
         trj.points.append(p)
+
+    # Imprime el total de iteraciones después de procesar todas las sub-metas
+    print(f"Total iterations for IK across all sub-goals: {total_iterations}")
+
     resp = InverseKinematicsPose2TrajResponse()
     resp.articular_trajectory = trj
     return resp
