@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Prueba 2
+#
 # MOBILE ROBOTS - FI-UNAM, 2025-1
 # FINAL PROJECT - SIMPLE SERVICE ROBOT
 # 
@@ -30,7 +30,7 @@ from vision_msgs.srv import *
 from manip_msgs.srv import *
 from hri_msgs.msg import *
 
-NAME ="Torres Anguiano Azael Arturo"
+NAME = "Torres Anguiano Azael Arturo"
 
 #
 # Global variable 'speech_recognized' contains the last recognized sentence
@@ -53,9 +53,8 @@ def callback_goal_reached(msg):
 
 def parse_command(cmd):
     obj = "pringles" if "PRINGLES" in cmd else "drink"
-    loc_name = "kitchen" if "KITCHEN" in cmd else "table"
-    loc_position = [8.0,8.5] if "TABLE" in cmd else [3.22, 9.72]
-    return obj, loc_name, loc_position
+    loc = [8.0,8.5] if "TABLE" in cmd else [3.22, 9.0]
+    return obj, loc
 
 #
 # This function sends the goal articular position to the left arm and sleeps 2 seconds
@@ -283,11 +282,11 @@ def main():
     pubGoalPose = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
     pubCmdVel   = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
     pubSay      = rospy.Publisher('/hri/speech_generator', SoundRequest, queue_size=10)
-    pubLaGoalPose = rospy.Publisher("/hardware/left_arm/goal_pose" , Float64MultiArray, queue_size=10);
-    pubRaGoalPose = rospy.Publisher("/hardware/right_arm/goal_pose", Float64MultiArray, queue_size=10);
-    pubHdGoalPose = rospy.Publisher("/hardware/head/goal_pose"     , Float64MultiArray, queue_size=10);
-    pubLaGoalGrip = rospy.Publisher("/hardware/left_arm/goal_gripper" , Float64, queue_size=10);
-    pubRaGoalGrip = rospy.Publisher("/hardware/right_arm/goal_gripper", Float64, queue_size=10);
+    pubLaGoalPose = rospy.Publisher("/hardware/left_arm/goal_pose" , Float64MultiArray, queue_size=10)
+    pubRaGoalPose = rospy.Publisher("/hardware/right_arm/goal_pose", Float64MultiArray, queue_size=10)
+    pubHdGoalPose = rospy.Publisher("/hardware/head/goal_pose"     , Float64MultiArray, queue_size=10)
+    pubLaGoalGrip = rospy.Publisher("/hardware/left_arm/goal_gripper" , Float64, queue_size=10)
+    pubRaGoalGrip = rospy.Publisher("/hardware/right_arm/goal_gripper", Float64, queue_size=10)
     pubLaGoalTraj = rospy.Publisher("/manipulation/la_q_trajectory", JointTrajectory, queue_size=10)
     pubRaGoalTraj = rospy.Publisher("/manipulation/ra_q_trajectory", JointTrajectory, queue_size=10)
     listener = tf.TransformListener()
@@ -321,7 +320,7 @@ def main():
         #SM_MOVE_HEAD
         elif current_state == "SM_MOVE_HEAD": 
             print("Moving head")
-            move_head(0, -0.8)
+            move_head(0, -1)
             current_state = "SM_FIND_OBJECT"
 
         #SM_FIND_OBJECT
@@ -398,4 +397,4 @@ def main():
         loop.sleep()
 
 if __name__ == '__main__':
-	    main()
+    main()
