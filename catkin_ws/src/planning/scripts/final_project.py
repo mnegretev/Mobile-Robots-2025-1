@@ -301,104 +301,101 @@ def main():
     #
     # FINAL PROJECT 
     #
-    SM_INIT = 0
-    SM_WAITING_FOR_NEW_TASK = 10
-    SM_PARSE_CMD = 20
-    SM_MOVE_HEAD = 30
-    SM_FIND_OBJECT =40
-    SM_TAKE_OBJECT = 50
-    SM_NAVIGATE_TO_GOAL = 60
-    SM_CONFIRM_ARRIVAL = 70
-    SM_PLACE_OBJECT = 80
-    SM_RETURN_TO_INITIAL = 90
-    
     executing_task = False
     current_state = "SM_INIT"
     new_task = False
     goal_reached = False
     while not rospy.is_shutdown():
-    	if current_state == SM_INIT:
-    	    print("SM Initialized")
-    	    current_state = SM_WAITING_FOR_NEW_TASK
-    	elif current_state == SM_WAITING_FOR_NEW_TASK:
+        if current_state == "SM_INIT":
+            print("Waiting for new task")
+            current_state = "SM_WAITING_NEW_TASK"
+        elif current_state == "SM_WAITING_NEW_TASK":
             if new_task:
-                print("New task received: ", recognized_speech)
-                new_task = False 
-                current_state = SM_PARSE_CMD
-    	elif current_state == SM_PARSE_CMD:
-            obj, loc_name, [goal_x, goal_y] = parse_command(recognized_speech)
-            print("Requested obj: ", obj, "Requested loc: ", loc_name)
-            say("I'm going to take the " + obj + " to the " + loc_name)
-            current_state = SM_MOVE_HEAD
-    	elif current_state == SM_MOVE_HEAD:
+                requested_object, requested_location = parse_command(recognized_speech)
+                print("New task received: " + requested_object + " to  " + str(requested_location))
+                say("Executing the command, " + recognized_speech)
+                current_state = "SM_MOVE_HEAD"
+                new_task = False
+                executing_task = True
+                
+        #SM_MOVE_HEAD
+        elif current_state == "SM_MOVE_HEAD": 
             print("Moving head")
             move_head(0, -0.8)
-            current_state = SM_FIND_OBJECT
-    	elif current_state == SM_FIND_OBJECT:
-            print("Trying to find ", obj)
-            x,y,z = find_object(obj)
-            print("Object ", obj, "found at ", [x,y,z],"wtr camera")
-            x,y,z=transform_point(x,y,z, source_frame="realsense_link", target_frame="base_link")
-            print("Object ", obj, "found at ", [x,y,z],"wtr base")
-            current_state = SM_TAKE_OBJECT
-    	elif current_state == SM_TAKE_OBJECT:
-            print ("Taking the ", obj, "at", [x,y,z] )
-            if obj=="pringles":
-            	print ("Moving the left arm")
-            	move_left_arm (-0.69,0.2,0.0,1.55,0.0,1.16,0.0)
-            	q_trajectory = calculate_inverse_kinematics_left(x, y, z, 0, math.pi/2, 0)
-            	move_left_arm_with_trajectory(q_trajectory)
-            	move_left_gripper(-0.2)
-            else :
-            	print ("Moving the right arm")
-            	move_right_arm (-1.2,-0.2,0.0,1.6,1.2,0.0,0.0)
-            	q_trajectory = calculate_inverse_kinematics_right(x, y, z, 0, math.pi/2, 0)
-            	move_right_arm_with_trajectory(q_trajectory)
-            	move_right_gripper(-0.2)
-            move_head(0, 0)
-            move_base(-0.2, 0,1.5)
-            say("I took the " + obj + "Now I'm going to the " + loc_name)
-            current_state = SM_NAVIGATE_TO_GOAL
-    	elif current_state == SM_NAVIGATE_TO_GOAL:
-            print("Navigating to the", loc_name, "at", [goal_x, goal_y])
-            go_to_goal_pose(goal_x, goal_y)
-            current_state = SM_CONFIRM_ARRIVAL
-    	elif current_state == SM_CONFIRM_ARRIVAL:
-    		if goal_reached:
-	    		print("Arrived at", loc_name)
-	    		current_state = SM_PLACE_OBJECT
-	    	else:
-	        	print("Goal not reached, retrying...")
-	        	current_state = SM_NAVIGATE_TO_GOAL
-    	elif current_state == SM_PLACE_OBJECT:
-    		print("Placing the", obj, "at the", loc_name)
-    		say ("Enjoy your" + obj)
-	    	if obj == "pringles":
-	    		move_left_gripper(0.0)
-	    		move_left_arm(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-	    	else:
-	    		move_right_gripper(0.0)
-	    		move_right_arm(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-	    	print("I placed" + obj + " at the " + loc_name + ". Task complete!")
-	    	say("Enjoy your " + obj)
-	    	current_state = SM_RETURN_TO_INITIAL
-    	elif current_state == SM_RETURN_TO_INITIAL:
-    	    print("Returning to initial position")
-    	    home_x, home_y = 3.5, 5.82
-    	    go_to_goal_pose(home_x, home_y)
-    	    if goal_reached:
-    	    	print("Returned to initial position.")
-    	    	say("Im ready for the next task.")
-    	    	current_state = SM_WAITING_FOR_NEW_TASK
-    	    else:
-    	    	print("Failed to return to initial position. Retrying...")
-    	    	say("I couldn't return to the initial position. Retrying...")
-    	    	current_state = SM_RETURN_TO_INITIAL
+            current_state = "SM_FIND_OBJECT"
 
-        #
-        # Write here your AFSM
-        #
-    loop.sleep()
+        #SM_FIND_OBJECT
+        elif current_state == "SM_FIND_OBJECT":
+            if requested_object != "pringles":
+                move_base(0, -1.5, 0.4)
+                move_base(0.3, 0, 0.1)
+            x,y,z = find_object(requested_object)
+            print("Found " + requested_object + "  at " + str([x,y,z]))
+            current_state = "SM_PICK_OBJECT"
+
+        #SM_TAKE_OBJECT
+        elif current_state == "SM_PICK_OBJECT":
+            x, y, z = transform_point(x, y, z)
+            print("Transformed position: " + str([x, y, z]))
+            Q = get_la_polynomial_trajectory([-1, 0.2, 0, 1.55, 0, 1.16, 0])
+            move_left_arm_with_trajectory(Q)
+            print("Opening gripper")
+            move_left_gripper(1.0)
+            print("Calculating inverse kinematics")
+            z_up = z + 0.11
+            Q = calculate_inverse_kinematics_left(x, y, z_up, 0, -math.pi / 2, 0)
+            high_pos = calculate_inverse_kinematics_left(x, y, z_up + 0.15, 0, -math.pi / 2, 0)
+            move_left_arm_with_trajectory(Q)
+            print("Closing gripper")
+            move_left_gripper(-0.1)
+            Q = get_la_polynomial_trajectory([-1, 0.2, 0, 1.55, 0, 1.16, 0])
+            move_left_arm_with_trajectory(Q)            
+            current_state = "SM_NAVIGATE"
+
+        #SM_NAVIGATE
+        elif current_state == "SM_NAVIGATE":
+            print("Navigating to " + str(requested_location))
+            say("Navigating to the requested location")
+            go_to_goal_pose(requested_location[0], requested_location[1])
+            current_state = "SM_GOAL"
+
+        #SM_GOAL
+        elif current_state == "SM_GOAL":
+            if goal_reached:
+                print("Arriving at "+ str(requested_location))
+                current_state = "SM_DELIVER"
+                goal_reached = False
+
+        #SM_DELIVER
+        elif current_state == "SM_DELIVER":
+            print("Leaving the object")
+            if str(requested_location) == "[8.0,8.5]":
+                move_base(0, -1.5, 0.8)
+                low_position = get_la_polynomial_trajectory([1.1, 0.065, -0.05, 0.52, 0, 0.26, 0.1])
+                move_left_arm_with_trajectory(low_position)
+            else:
+                move_base(0, 1.0, 1.5)
+                move_left_arm_with_trajectory(high_pos)
+            print("Opening gripper")
+            move_left_gripper(1.0)
+            Q = get_la_polynomial_trajectory([-1.5, 0.2, 0, 2, 0, 1.16, 0])
+            move_left_arm_with_trajectory(Q)
+            Q = get_la_polynomial_trajectory([0, 0, 0, 0, 0, 0, 0])
+            move_left_arm_with_trajectory(Q)
+            move_left_gripper(0)
+            print("The " + requested_object + " has been delivered")
+            say("The " + requested_object + " has been delivered")
+            current_state = "SM_COMPLETED"
+
+        #SM_COMPLETED
+        elif current_state == "SM_COMPLETED":
+            print("Task completed")
+            say("Task completed")
+            print("Waiting for new task")
+            executing_task = False
+            current_state = "SM_WAITING_NEW_TASK"
+        
+        loop.sleep()
 
 if __name__ == '__main__':
-    main()
+	    main()
